@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { HeroBanner } from '../components/home/HeroBanner';
 import { BestSellers } from '../components/home/BestSellers';
 import { CustomerLooksCarousel } from '../components/home/CustomerLooksCarousel';
+import { BohoCrochetSpotlight } from '../components/home/BohoCrochetSpotlight';
+import { PromoBannerModal } from '../components/common/PromoBannerModal';
 import { fetchProducts } from '../api/products';
 import { fetchCustomerLooks } from '../api/customerLooks';
 import { fallbackProducts, fallbackCustomerLooks } from '../data/fallbackData';
@@ -48,6 +50,12 @@ export const Home = () => {
       {Array.isArray(customerLooks) && customerLooks.length > 0 && (
         <CustomerLooksCarousel looks={customerLooks} loading={loading} />
       )}
+
+      {/* 4. Autoplaying Boho Crochet Spotlight Section */}
+      <BohoCrochetSpotlight />
+
+      {/* 5. Welcome Announcement Banner Modal with Cancel Button */}
+      <PromoBannerModal />
     </div>
   );
 };
