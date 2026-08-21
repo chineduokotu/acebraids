@@ -6,11 +6,12 @@ import { QuickViewModal } from '../components/product/QuickViewModal';
 import { Loader } from '../components/common/Loader';
 import { fetchProducts } from '../api/products';
 import { fetchCategories } from '../api/categories';
+import { fallbackProducts, fallbackCategories } from '../data/fallbackData';
 
 export const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState(fallbackProducts);
+  const [categories, setCategories] = useState(fallbackCategories);
   const [loading, setLoading] = useState(true);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
@@ -23,7 +24,9 @@ export const Shop = () => {
     const loadCategories = async () => {
       try {
         const catData = await fetchCategories();
-        setCategories(catData || []);
+        if (Array.isArray(catData) && catData.length > 0) {
+          setCategories(catData);
+        }
       } catch (err) {
         console.error('Failed to load categories:', err);
       }
@@ -41,9 +44,11 @@ export const Shop = () => {
           sort: currentSort || undefined,
         };
         const data = await fetchProducts(params);
-        setProducts(data.products || []);
+        if (data?.products && Array.isArray(data.products)) {
+          setProducts(data.products);
+        }
       } catch (err) {
-        console.error('Failed to fetch products:', err);
+        console.error('Failed to fetch products, using cached catalog:', err);
       } finally {
         setLoading(false);
       }

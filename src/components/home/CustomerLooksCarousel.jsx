@@ -63,7 +63,7 @@ export const CustomerLooksCarousel = ({ looks = [], loading = false }) => {
           ref={scrollContainerRef}
           className="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar scroll-smooth pb-4 snap-x snap-mandatory"
         >
-          {looks.map((look) => {
+          {(Array.isArray(looks) ? looks : []).map((look) => {
             const product = look.linkedProduct;
             return (
               <div

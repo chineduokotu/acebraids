@@ -5,11 +5,11 @@ import { ProductGallery } from '../components/product/ProductGallery';
 import { VariantSelector } from '../components/product/VariantSelector';
 import { PriceTag } from '../components/common/PriceTag';
 import { Button } from '../components/common/Button';
-import { Loader } from '../components/common/Loader';
 import { fetchProductBySlug, fetchProducts } from '../api/products';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { ProductCard } from '../components/product/ProductCard';
+import { fallbackProducts } from '../data/fallbackData';
 
 export const ProductDetail = () => {
   const { slug } = useParams();
@@ -33,23 +33,34 @@ export const ProductDetail = () => {
       setError(null);
       try {
         const prodData = await fetchProductBySlug(slug);
-        setProduct(prodData);
-        setSelectedVariant(prodData.variants?.[0] || null);
+        if (prodData && prodData.name) {
+          setProduct(prodData);
+          setSelectedVariant(prodData.variants?.[0] || null);
 
-        // Load related items
-        if (prodData.category?._id) {
-          const related = await fetchProducts({ category: prodData.category._id, limit: 4 });
-          setRelatedProducts(related.products?.filter(p => p._id !== prodData._id) || []);
+          // Load related items
+          if (prodData.category?._id) {
+            const related = await fetchProducts({ category: prodData.category._id, limit: 4 });
+            setRelatedProducts(related.products?.filter(p => p._id !== prodData._id) || []);
+          }
+        } else {
+          throw new Error('Product not found via API');
         }
       } catch (err) {
-        setError('Unable to load product. It may have been removed.');
+        // Fallback to local catalog
+        const localProd = fallbackProducts.find(p => p.slug === slug);
+        if (localProd) {
+          setProduct(localProd);
+          setSelectedVariant(localProd.variants?.[0] || null);
+          setRelatedProducts(fallbackProducts.filter(p => p.slug !== slug).slice(0, 3));
+        } else {
+          setError('Unable to load product. It may have been removed.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadProduct();
-    window.scrollTo(0, 0);
   }, [slug]);
 
   if (loading) {

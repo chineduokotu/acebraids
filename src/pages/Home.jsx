@@ -4,23 +4,30 @@ import { BestSellers } from '../components/home/BestSellers';
 import { CustomerLooksCarousel } from '../components/home/CustomerLooksCarousel';
 import { fetchProducts } from '../api/products';
 import { fetchCustomerLooks } from '../api/customerLooks';
+import { fallbackProducts, fallbackCustomerLooks } from '../data/fallbackData';
 
 export const Home = () => {
-  const [products, setProducts] = useState([]);
-  const [customerLooks, setCustomerLooks] = useState([]);
+  const [products, setProducts] = useState(fallbackProducts);
+  const [customerLooks, setCustomerLooks] = useState(fallbackCustomerLooks);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadHomeData = async () => {
       try {
-        const [prodData, looksData] = await Promise.all([
+        const [prodData, looksData] = await Promise.allSettled([
           fetchProducts({ limit: 12 }),
           fetchCustomerLooks(),
         ]);
-        setProducts(prodData.products || []);
-        setCustomerLooks(looksData || []);
+
+        if (prodData.status === 'fulfilled' && prodData.value?.products && Array.isArray(prodData.value.products)) {
+          setProducts(prodData.value.products);
+        }
+
+        if (looksData.status === 'fulfilled' && Array.isArray(looksData.value)) {
+          setCustomerLooks(looksData.value);
+        }
       } catch (err) {
-        console.error('Failed to load homepage data:', err);
+        console.error('Failed to load homepage data, using cached catalog:', err);
       } finally {
         setLoading(false);
       }
@@ -38,7 +45,7 @@ export const Home = () => {
       <BestSellers products={products} loading={loading} />
 
       {/* 3. Real Customer Looks Video Carousel */}
-      {customerLooks.length > 0 && (
+      {Array.isArray(customerLooks) && customerLooks.length > 0 && (
         <CustomerLooksCarousel looks={customerLooks} loading={loading} />
       )}
     </div>
