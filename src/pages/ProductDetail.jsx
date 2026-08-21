@@ -5,6 +5,7 @@ import { ProductGallery } from '../components/product/ProductGallery';
 import { VariantSelector } from '../components/product/VariantSelector';
 import { PriceTag } from '../components/common/PriceTag';
 import { Button } from '../components/common/Button';
+import { Loader } from '../components/common/Loader';
 import { fetchProductBySlug, fetchProducts } from '../api/products';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
