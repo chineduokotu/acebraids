@@ -5,9 +5,9 @@ import { QuickViewModal } from '../product/QuickViewModal';
 export const BestSellers = ({ products = [], loading = false }) => {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
-  // Take top 4-8 products for homepage showcase
+  // Take top products for homepage showcase
   const displayProducts = Array.isArray(products) && products.length > 0
-    ? products.slice(0, 6)
+    ? products.slice(0, 8)
     : [];
 
   return (

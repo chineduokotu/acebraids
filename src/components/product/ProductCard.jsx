@@ -10,6 +10,7 @@ export const ProductCard = ({ product, onQuickView }) => {
 
   if (!product) return null;
 
+  const mainVideo = product.videos?.[0]?.url;
   const mainImage = product.images?.[0]?.url || '/uploads/IMG_6241.PNG';
   const effectivePrice = product.discountPrice || product.price;
 
@@ -29,17 +30,28 @@ export const ProductCard = ({ product, onQuickView }) => {
 
   return (
     <div className="group flex flex-col bg-transparent select-none">
-      {/* Product Image Stage */}
+      {/* Product Image/Video Stage */}
       <div className="relative aspect-[3/4] bg-[#EFEFEF] overflow-hidden rounded-none">
         <Link to={`/product/${product.slug}`} className="block w-full h-full">
-          <img
-            src={mainImage}
-            alt={product.name}
-            className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-103"
-            onError={(e) => {
-              e.target.src = '/uploads/IMG_4065.PNG';
-            }}
-          />
+          {mainVideo ? (
+            <video
+              src={mainVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-103"
+            />
+          ) : (
+            <img
+              src={mainImage}
+              alt={product.name}
+              className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-103"
+              onError={(e) => {
+                e.target.src = '/uploads/IMG_4065.PNG';
+              }}
+            />
+          )}
         </Link>
 
         {/* Floating Dark Charcoal Basket Button (matches screenshot exactly) */}
@@ -54,17 +66,24 @@ export const ProductCard = ({ product, onQuickView }) => {
         </button>
       </div>
 
-      {/* Product Info (Minimalist matching screenshot) */}
+      {/* Product Info (Minimalist and bold) */}
       <div className="pt-3 pb-1 flex flex-col">
         <Link
           to={`/product/${product.slug}`}
-          className="font-heading font-medium text-[13.5px] sm:text-sm text-neutral-800 hover:text-ace-pink transition-colors line-clamp-2 leading-snug"
+          className="font-heading font-bold text-[14px] sm:text-[15px] text-neutral-900 hover:text-ace-pink transition-colors line-clamp-1 leading-snug tracking-tight"
         >
           {product.name}
         </Link>
 
+        {/* Short Description & HD Lace Highlight (Boldened and readable on mobile) */}
+        {product.description && (
+          <p className="mt-1 text-[11.5px] sm:text-xs text-neutral-700 font-medium line-clamp-2 leading-relaxed">
+            {product.description}
+          </p>
+        )}
+
         {/* Price ("From £X") */}
-        <p className="mt-1 font-heading font-medium text-[13px] sm:text-sm text-neutral-700">
+        <p className="mt-1.5 font-heading font-bold text-[13.5px] sm:text-sm text-neutral-900">
           From {format(effectivePrice)}
         </p>
       </div>
