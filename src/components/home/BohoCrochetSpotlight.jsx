@@ -19,20 +19,12 @@ export const BohoCrochetSpotlight = () => {
                 playsInline
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full border border-white/20 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Live Demo
-              </div>
             </div>
           </div>
 
           {/* Right: Editorial Content & Features */}
           <div className="lg:col-span-7 flex flex-col space-y-5">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ace-pink mb-2">
-                <Sparkles className="w-3.5 h-3.5" />
-                Signature Specialty
-              </span>
               <h2 className="font-heading font-extrabold text-2xl sm:text-4xl text-neutral-900 leading-tight">
                 Individual Ready-to-Install Boho Crochet Extensions
               </h2>

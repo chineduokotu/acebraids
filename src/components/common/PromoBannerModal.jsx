@@ -58,12 +58,6 @@ export const PromoBannerModal = () => {
             playsInline
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-4">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-white bg-ace-pink px-2.5 py-0.5 rounded-full">
-              <Sparkles className="w-3 h-3" />
-              New In Store
-            </span>
-          </div>
         </div>
 
         {/* Content & Actions */}
