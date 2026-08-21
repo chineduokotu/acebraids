@@ -1,5 +1,4 @@
 import React from 'react';
-import { Check, ShieldCheck } from 'lucide-react';
 
 export const VariantSelector = ({
   variants = [],
@@ -38,23 +37,20 @@ export const VariantSelector = ({
     onSelectVariant(match);
   };
 
-  const isLowStock = selectedVariant?.stock > 0 && selectedVariant?.stock <= 5;
-  const isOutOfStock = selectedVariant?.stock === 0;
-
   return (
-    <div className="space-y-5">
-      {/* Color Swatches / Pills */}
+    <div className="space-y-4">
+      {/* Color Selection */}
       {colors.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Color Tone:
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+              Color Tone
             </span>
-            <span className="text-xs font-bold text-ace-black">
+            <span className="text-xs font-semibold text-neutral-900">
               {currentColor}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2">
             {colors.map((c) => {
               const isSelected = currentColor === c;
               return (
@@ -62,14 +58,13 @@ export const VariantSelector = ({
                   key={c}
                   type="button"
                   onClick={() => handleColorChange(c)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 text-xs transition-all ${
                     isSelected
-                      ? 'border-ace-pink bg-ace-light text-ace-pink shadow-xs'
-                      : 'border-ace-border bg-white text-neutral-700 hover:border-neutral-400'
+                      ? 'bg-neutral-900 text-white font-medium'
+                      : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
                   }`}
                 >
-                  {isSelected && <Check className="w-3 h-3 text-ace-pink" />}
-                  <span>{c}</span>
+                  {c}
                 </button>
               );
             })}
@@ -77,18 +72,18 @@ export const VariantSelector = ({
         </div>
       )}
 
-      {/* Length Selector Pills */}
+      {/* Length Selection */}
       {lengths.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Hair Length:
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+              Length
             </span>
-            <span className="text-xs font-bold text-ace-black">
+            <span className="text-xs font-semibold text-neutral-900">
               {currentLength}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2">
             {lengths.map((len) => {
               const isSelected = currentLength === len;
               return (
@@ -96,10 +91,10 @@ export const VariantSelector = ({
                   key={len}
                   type="button"
                   onClick={() => handleLengthChange(len)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                  className={`px-3.5 py-1.5 text-xs transition-all ${
                     isSelected
-                      ? 'border-ace-pink bg-ace-pink text-white shadow-xs'
-                      : 'border-ace-border bg-white text-neutral-700 hover:border-neutral-400'
+                      ? 'bg-neutral-900 text-white font-medium'
+                      : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
                   }`}
                 >
                   {len}
@@ -110,18 +105,18 @@ export const VariantSelector = ({
         </div>
       )}
 
-      {/* Cap Size Selector Pills */}
+      {/* Cap Size Selection */}
       {capSizes.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Cap Size:
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+              Cap Size
             </span>
-            <span className="text-xs font-bold text-ace-black">
+            <span className="text-xs font-semibold text-neutral-900">
               {currentCapSize}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2">
             {capSizes.map((cap) => {
               const isSelected = currentCapSize === cap;
               return (
@@ -129,10 +124,10 @@ export const VariantSelector = ({
                   key={cap}
                   type="button"
                   onClick={() => handleCapSizeChange(cap)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                  className={`px-3.5 py-1.5 text-xs transition-all ${
                     isSelected
-                      ? 'border-ace-pink bg-ace-light text-ace-pink'
-                      : 'border-ace-border bg-white text-neutral-700 hover:border-neutral-400'
+                      ? 'bg-neutral-900 text-white font-medium'
+                      : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
                   }`}
                 >
                   {cap}
@@ -142,26 +137,6 @@ export const VariantSelector = ({
           </div>
         </div>
       )}
-
-      {/* Live Stock Indicator */}
-      <div className="pt-1 flex items-center gap-2 text-xs">
-        {isOutOfStock ? (
-          <span className="inline-flex items-center gap-1.5 text-ace-error font-semibold">
-            <span className="w-2 h-2 rounded-full bg-ace-error"></span>
-            Currently Sold Out (Restocking Soon)
-          </span>
-        ) : isLowStock ? (
-          <span className="inline-flex items-center gap-1.5 text-amber-700 font-semibold animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-            Hurry! Only {selectedVariant.stock} units left in stock
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-emerald-700 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            In Stock — Dispatched within 24h from UK Hub
-          </span>
-        )}
-      </div>
     </div>
   );
 };
