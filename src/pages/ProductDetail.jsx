@@ -150,7 +150,7 @@ export const ProductDetail = () => {
 
             {/* Description */}
             {product.description && (
-              <p className="text-sm text-neutral-600 leading-relaxed">
+              <p className="text-sm text-neutral-600 leading-relaxed whitespace-pre-line font-medium">
                 {product.description}
               </p>
             )}

@@ -65,7 +65,7 @@ export const QuickViewModal = ({ product, isOpen, onClose }) => {
               size="lg"
             />
 
-            <p className="text-xs text-neutral-500 line-clamp-3 leading-relaxed">
+            <p className="text-xs text-neutral-500 line-clamp-4 leading-relaxed whitespace-pre-line">
               {product.description}
             </p>
 

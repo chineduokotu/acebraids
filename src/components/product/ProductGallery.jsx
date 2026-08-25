@@ -1,30 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play } from 'lucide-react';
 
 export const ProductGallery = ({ images = [], videos = [], productName = '' }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isVideoMode, setIsVideoMode] = useState(false);
+  const hasVideos = Array.isArray(videos) && videos.length > 0;
+  const validImages = Array.isArray(images) && images.length > 0 ? images : [];
 
-  const validImages = images.length > 0 ? images : [{ url: '/uploads/IMG_4065.PNG', alt: productName }];
-  const activeImage = validImages[selectedIndex] || validImages[0];
-  const activeVideo = videos.length > 0 ? videos[0] : null;
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
+  const [isVideoMode, setIsVideoMode] = useState(hasVideos);
+
+  useEffect(() => {
+    setSelectedImageIndex(0);
+    setSelectedVideoIndex(0);
+    setIsVideoMode(Array.isArray(videos) && videos.length > 0);
+  }, [productName, videos, images]);
+
+  const activeImage = validImages[selectedImageIndex] || (validImages.length > 0 ? validImages[0] : { url: '/uploads/IMG_4065.PNG', alt: productName });
+  const activeVideo = hasVideos ? (videos[selectedVideoIndex] || videos[0]) : null;
+
+  const totalThumbnails = validImages.length + (hasVideos ? videos.length : 0);
 
   return (
     <div className="flex flex-col-reverse md:flex-row gap-4">
       {/* Thumbnail Selector Strip */}
-      {(validImages.length > 1 || activeVideo) && (
+      {totalThumbnails > 1 && (
         <div className="flex md:flex-col gap-2.5 overflow-x-auto no-scrollbar py-1 md:py-0 flex-shrink-0">
           {validImages.map((img, idx) => (
             <button
-              key={idx}
+              key={`img-${idx}`}
               type="button"
               onClick={() => {
-                setSelectedIndex(idx);
+                setSelectedImageIndex(idx);
                 setIsVideoMode(false);
               }}
               className={`relative w-16 h-20 sm:w-20 sm:h-24 overflow-hidden border transition-all flex-shrink-0 bg-neutral-100 ${
-                !isVideoMode && selectedIndex === idx
-                  ? 'border-neutral-900 opacity-100'
+                !isVideoMode && selectedImageIndex === idx
+                  ? 'border-neutral-900 opacity-100 ring-1 ring-neutral-900'
                   : 'border-transparent opacity-60 hover:opacity-100'
               }`}
             >
@@ -39,21 +50,25 @@ export const ProductGallery = ({ images = [], videos = [], productName = '' }) =
             </button>
           ))}
 
-          {/* Video Thumbnail */}
-          {activeVideo && (
+          {/* Video Thumbnails */}
+          {hasVideos && videos.map((vid, vIdx) => (
             <button
+              key={`vid-${vIdx}`}
               type="button"
-              onClick={() => setIsVideoMode(true)}
+              onClick={() => {
+                setSelectedVideoIndex(vIdx);
+                setIsVideoMode(true);
+              }}
               className={`relative w-16 h-20 sm:w-20 sm:h-24 overflow-hidden border transition-all flex-shrink-0 bg-neutral-900 flex items-center justify-center ${
-                isVideoMode
-                  ? 'border-neutral-900 opacity-100'
+                isVideoMode && selectedVideoIndex === vIdx
+                  ? 'border-neutral-900 opacity-100 ring-1 ring-neutral-900'
                   : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
-              {activeVideo.posterUrl ? (
+              {vid.posterUrl ? (
                 <img
-                  src={activeVideo.posterUrl}
-                  alt="Video reel preview"
+                  src={vid.posterUrl}
+                  alt={`${productName} video ${vIdx + 1}`}
                   className="w-full h-full object-cover opacity-60"
                 />
               ) : (
@@ -65,7 +80,7 @@ export const ProductGallery = ({ images = [], videos = [], productName = '' }) =
                 </div>
               </div>
             </button>
-          )}
+          ))}
         </div>
       )}
 
@@ -74,6 +89,7 @@ export const ProductGallery = ({ images = [], videos = [], productName = '' }) =
         {isVideoMode && activeVideo ? (
           <div className="w-full h-full bg-black flex items-center justify-center">
             <video
+              key={activeVideo.url}
               src={activeVideo.url}
               poster={activeVideo.posterUrl}
               controls

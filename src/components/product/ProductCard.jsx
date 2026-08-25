@@ -77,7 +77,7 @@ export const ProductCard = ({ product, onQuickView }) => {
 
         {/* Short Description & HD Lace Highlight (Boldened and readable on mobile) */}
         {product.description && (
-          <p className="mt-1 text-[11.5px] sm:text-xs text-neutral-700 font-medium line-clamp-2 leading-relaxed">
+          <p className="mt-1 text-[11.5px] sm:text-xs text-neutral-700 font-medium line-clamp-2 leading-relaxed whitespace-pre-line">
             {product.description}
           </p>
         )}
