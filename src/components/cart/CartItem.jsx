@@ -44,8 +44,7 @@ export const CartItem = ({ item, onUpdateQty, onRemove }) => {
         {/* Variant summary tags */}
         <div className="text-xs text-neutral-500 mt-1 space-y-0.5">
           {item.variant?.color && <p className="truncate">Color: <span className="font-medium text-ace-soft">{item.variant.color}</span></p>}
-          {item.variant?.length && <p>Length: <span className="font-medium text-ace-soft">{item.variant.length}</span></p>}
-          {item.variant?.capSize && item.variant.capSize !== 'N/A' && (
+          {item.variant?.capSize && item.variant.capSize !== 'N/A' && item.variant.capSize !== 'Standard' && (
             <p>Cap: <span className="font-medium text-ace-soft">{item.variant.capSize}</span></p>
           )}
         </div>

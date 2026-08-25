@@ -60,28 +60,18 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Honey Blonde Mix / 30 Inch",
+        label: "Honey Blonde Mix",
         color: "Honey Blonde Mix",
-        length: "30 Inch",
         capSize: 'Medium (22.5")',
         stock: 14,
-        sku: "ABB-BLM-30-M",
+        sku: "ABB-BLM-1",
       },
       {
-        label: "Honey Blonde Mix / 34 Inch",
-        color: "Honey Blonde Mix",
-        length: "34 Inch",
-        capSize: 'Medium (22.5")',
-        stock: 8,
-        sku: "ABB-BLM-34-M",
-      },
-      {
-        label: "1B/27 Ombre / 28 Inch",
+        label: "1B/27 Ombre",
         color: "1B/27 Ombre",
-        length: "28 Inch",
         capSize: 'Medium (22.5")',
         stock: 6,
-        sku: "ABB-BLM-28-M",
+        sku: "ABB-BLM-2",
       },
     ],
   },
@@ -130,28 +120,18 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "1B Natural Black / 28 Inch",
+        label: "1B Natural Black",
         color: "1B Natural Black",
-        length: "28 Inch",
         capSize: 'Medium (22.5")',
         stock: 16,
-        sku: "ABB-WNM-1B-28-M",
+        sku: "ABB-WNM-1B-M",
       },
       {
-        label: "1B/30 Ombre Caramel / 28 Inch",
+        label: "1B/30 Ombre Caramel",
         color: "1B/30 Ombre Caramel",
-        length: "28 Inch",
         capSize: 'Medium (22.5")',
         stock: 9,
-        sku: "ABB-WNM-30-28-M",
-      },
-      {
-        label: "1B Natural Black / 32 Inch",
-        color: "1B Natural Black",
-        length: "32 Inch",
-        capSize: 'Medium (22.5")',
-        stock: 5,
-        sku: "ABB-WNM-1B-32-M",
+        sku: "ABB-WNM-30-M",
       },
     ],
   },
@@ -168,7 +148,7 @@ export const fallbackProducts = [
     details: [
       "High-definition HD Lace base with invisible scalp melt",
       "Neat micro-braided crown transitioning into a chic front fringe",
-      "Ultra-soft, bouncy shoulder-length bohemian curls",
+      "Ultra-soft, bouncy bohemian curls",
       "100% glueless cap with secure adjustable elastic band",
       "Feather-light density that eliminates neck strain",
     ],
@@ -192,20 +172,11 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "1B Natural Black / 14 Inch Bob",
+        label: "1B Natural Black",
         color: "1B Natural Black",
-        length: "14 Inch",
         capSize: 'Medium (22.5")',
         stock: 12,
-        sku: "ABB-WGL-1B-14-M",
-      },
-      {
-        label: "1B Natural Black / 16 Inch Bob",
-        color: "1B Natural Black",
-        length: "16 Inch",
-        capSize: 'Medium (22.5")',
-        stock: 8,
-        sku: "ABB-WGL-1B-16-M",
+        sku: "ABB-WGL-1B-M",
       },
     ],
   },
@@ -246,20 +217,18 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "#350 Copper Rust / 14 Inch Bob",
+        label: "#350 Copper Rust",
         color: "#350 Copper Rust",
-        length: "14 Inch",
         capSize: 'Medium (22.5")',
         stock: 15,
-        sku: "ABB-WGJ-350-14-M",
+        sku: "ABB-WGJ-350-M",
       },
       {
-        label: "#30 Auburn Brown / 14 Inch Bob",
+        label: "#30 Auburn Brown",
         color: "#30 Auburn Brown",
-        length: "14 Inch",
         capSize: 'Medium (22.5")',
         stock: 10,
-        sku: "ABB-WGJ-30-14-M",
+        sku: "ABB-WGJ-30-M",
       },
     ],
   },
@@ -298,9 +267,8 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Standard Fit / Natural Black",
+        label: "Natural Black",
         color: "Natural Black",
-        length: "Standard",
         capSize: "Flexible Scarf Fit",
         stock: 20,
         sku: "ABB-WGA-STD-1",
@@ -342,9 +310,8 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Standard Fit / Natural Black",
+        label: "Natural Black",
         color: "Natural Black",
-        length: "Standard",
         capSize: "Flexible Scarf Fit",
         stock: 20,
         sku: "ABB-WGA-STD-2",
@@ -386,9 +353,8 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Standard Fit / Natural Black",
+        label: "Natural Black",
         color: "Natural Black",
-        length: "Standard",
         capSize: "Flexible Scarf Fit",
         stock: 20,
         sku: "ABB-WGA-STD-3",
@@ -430,9 +396,8 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Standard Fit / Natural Black",
+        label: "Natural Black",
         color: "Natural Black",
-        length: "Standard",
         capSize: "Adjustable Cap Fit",
         stock: 20,
         sku: "ABB-WGT-STD-1",
@@ -474,9 +439,8 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Standard Fit / Natural Black",
+        label: "Natural Black",
         color: "Natural Black",
-        length: "Standard",
         capSize: "Adjustable Cap Fit",
         stock: 20,
         sku: "ABB-WGT-STD-2",
@@ -518,9 +482,8 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Standard Fit / Natural Black",
+        label: "Natural Black",
         color: "Natural Black",
-        length: "Standard",
         capSize: "Adjustable Cap Fit",
         stock: 20,
         sku: "ABB-WGT-STD-3",
@@ -562,9 +525,8 @@ export const fallbackProducts = [
     ],
     variants: [
       {
-        label: "Standard Fit / Natural Black",
+        label: "Natural Black",
         color: "Natural Black",
-        length: "Standard",
         capSize: "Universal Bucket Fit",
         stock: 20,
         sku: "ABB-WGC-STD",

@@ -7,25 +7,16 @@ export const VariantSelector = ({
 }) => {
   if (!variants || variants.length === 0) return null;
 
-  // Extract unique colors, lengths, and capSizes
+  // Extract unique colors and capSizes
   const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
-  const lengths = [...new Set(variants.map(v => v.length).filter(Boolean))];
-  const capSizes = [...new Set(variants.map(v => v.capSize).filter(Boolean))].filter(cs => cs !== 'N/A');
+  const capSizes = [...new Set(variants.map(v => v.capSize).filter(Boolean))].filter(cs => cs !== 'N/A' && cs !== 'Standard');
 
   const currentColor = selectedVariant?.color || colors[0];
-  const currentLength = selectedVariant?.length || lengths[0];
   const currentCapSize = selectedVariant?.capSize || (capSizes.length > 0 ? capSizes[0] : null);
 
   const handleColorChange = (newColor) => {
-    const match = variants.find(v => v.color === newColor && (!currentLength || v.length === currentLength))
+    const match = variants.find(v => v.color === newColor && (!currentCapSize || v.capSize === currentCapSize))
       || variants.find(v => v.color === newColor)
-      || variants[0];
-    onSelectVariant(match);
-  };
-
-  const handleLengthChange = (newLength) => {
-    const match = variants.find(v => v.length === newLength && (!currentColor || v.color === currentColor))
-      || variants.find(v => v.length === newLength)
       || variants[0];
     onSelectVariant(match);
   };
@@ -40,7 +31,7 @@ export const VariantSelector = ({
   return (
     <div className="space-y-4">
       {/* Color Selection */}
-      {colors.length > 0 && (
+      {colors.length > 1 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
@@ -72,41 +63,8 @@ export const VariantSelector = ({
         </div>
       )}
 
-      {/* Length Selection */}
-      {lengths.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-              Length
-            </span>
-            <span className="text-xs font-semibold text-neutral-900">
-              {currentLength}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {lengths.map((len) => {
-              const isSelected = currentLength === len;
-              return (
-                <button
-                  key={len}
-                  type="button"
-                  onClick={() => handleLengthChange(len)}
-                  className={`px-3.5 py-1.5 text-xs transition-all ${
-                    isSelected
-                      ? 'bg-neutral-900 text-white font-medium'
-                      : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
-                  }`}
-                >
-                  {len}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Cap Size Selection */}
-      {capSizes.length > 0 && (
+      {capSizes.length > 1 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
