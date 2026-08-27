@@ -5,9 +5,9 @@ import { QuickViewModal } from "../product/QuickViewModal";
 export const BestSellers = ({ products = [], loading = false }) => {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
-  // Take top products for homepage showcase
+  // Display all products for showcase
   const displayProducts =
-    Array.isArray(products) && products.length > 0 ? products.slice(0, 11) : [];
+    Array.isArray(products) && products.length > 0 ? products : [];
 
   return (
     <section className="py-8 sm:py-12 bg-white">

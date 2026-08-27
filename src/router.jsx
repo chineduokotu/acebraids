@@ -17,6 +17,7 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { Dashboard } from './pages/admin/Dashboard';
 import { ManageProducts } from './pages/admin/ManageProducts';
+import { ManageCategories } from './pages/admin/ManageCategories';
 import { ManageOrders } from './pages/admin/ManageOrders';
 import { ManageCustomerLooks } from './pages/admin/ManageCustomerLooks';
 import { useAuth } from './context/AuthContext';
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Dashboard /> },
       { path: 'products', element: <ManageProducts /> },
+      { path: 'categories', element: <ManageCategories /> },
       { path: 'orders', element: <ManageOrders /> },
       { path: 'customer-looks', element: <ManageCustomerLooks /> },
     ],

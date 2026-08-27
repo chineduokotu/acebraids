@@ -533,6 +533,92 @@ export const fallbackProducts = [
       },
     ],
   },
+  {
+    _id: "prod-sharon-1",
+    name: "Wig Sharon",
+    slug: "wig-sharon-1",
+    category: {
+      name: "Exquisite Cap Braided Wigs",
+      slug: "exquisite-cap-braided-wigs",
+    },
+    description: "ready to wear braided head warmer wig",
+    details: [
+      "Ready to wear braided head warmer wig designed for cozy comfort and effortless instant styling",
+      "Soft, stretch head warmer headband base with secure fit",
+      "Ultra-lightweight hand-crafted braids with natural movement",
+      "Zero glue, gel, or lace cutting required — slip on and go in seconds",
+      "Includes signature Ace satin protective storage bag",
+    ],
+    hairCareTips: [
+      "Hand wash head warmer band gently with mild detergent and air dry",
+      "Store in satin bag to keep braids neat and tangle-free",
+    ],
+    price: 19.99,
+    discountPrice: 19.99,
+    isFeatured: true,
+    isNewArrival: true,
+    rating: 4.9,
+    reviewsCount: 20,
+    images: [],
+    videos: [
+      {
+        url: "/uploads/sharon.mp4",
+        type: "video/mp4",
+      },
+    ],
+    variants: [
+      {
+        label: "Natural Black",
+        color: "Natural Black",
+        capSize: "Flexible Head Warmer Fit",
+        stock: 20,
+        sku: "ABB-WGS-STD-1",
+      },
+    ],
+  },
+  {
+    _id: "prod-sharon-2",
+    name: "Wig Sharon",
+    slug: "wig-sharon-2",
+    category: {
+      name: "Exquisite Cap Braided Wigs",
+      slug: "exquisite-cap-braided-wigs",
+    },
+    description: "ready to wear braided head warmer wig",
+    details: [
+      "Ready to wear braided head warmer wig designed for cozy comfort and effortless instant styling",
+      "Soft, stretch head warmer headband base with secure fit",
+      "Ultra-lightweight hand-crafted braids with natural movement",
+      "Zero glue, gel, or lace cutting required — slip on and go in seconds",
+      "Includes signature Ace satin protective storage bag",
+    ],
+    hairCareTips: [
+      "Hand wash head warmer band gently with mild detergent and air dry",
+      "Store in satin bag to keep braids neat and tangle-free",
+    ],
+    price: 19.99,
+    discountPrice: 19.99,
+    isFeatured: true,
+    isNewArrival: true,
+    rating: 4.9,
+    reviewsCount: 20,
+    images: [],
+    videos: [
+      {
+        url: "/uploads/sharon2.mp4",
+        type: "video/mp4",
+      },
+    ],
+    variants: [
+      {
+        label: "Natural Black",
+        color: "Natural Black",
+        capSize: "Flexible Head Warmer Fit",
+        stock: 20,
+        sku: "ABB-WGS-STD-2",
+      },
+    ],
+  },
 ];
 
 export const fallbackCustomerLooks = [

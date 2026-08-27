@@ -17,7 +17,7 @@ export const Home = () => {
     const loadHomeData = async () => {
       try {
         const [prodData, looksData] = await Promise.allSettled([
-          fetchProducts({ limit: 12 }),
+          fetchProducts(),
           fetchCustomerLooks(),
         ]);
 

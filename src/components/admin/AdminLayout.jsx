@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, Film, LogOut, ArrowLeft, Store } from 'lucide-react';
+import { LayoutDashboard, Package, Layers, ShoppingCart, Film, LogOut, ArrowLeft, Store } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ScrollToTop } from '../common/ScrollToTop';
 
@@ -16,6 +16,7 @@ export const AdminLayout = () => {
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
     { name: 'Products', path: '/admin/products', icon: Package },
+    { name: 'Categories', path: '/admin/categories', icon: Layers },
     { name: 'Orders', path: '/admin/orders', icon: ShoppingCart },
     { name: 'Customer Looks', path: '/admin/customer-looks', icon: Film },
   ];
