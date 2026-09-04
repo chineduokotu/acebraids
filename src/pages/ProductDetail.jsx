@@ -10,7 +10,6 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { ProductCard } from '../components/product/ProductCard';
-import { fallbackProducts } from '../data/fallbackData';
 
 export const ProductDetail = () => {
   const { slug } = useParams();
@@ -47,15 +46,7 @@ export const ProductDetail = () => {
           throw new Error('Product not found via API');
         }
       } catch (err) {
-        // Fallback to local catalog
-        const localProd = fallbackProducts.find(p => p.slug === slug);
-        if (localProd) {
-          setProduct(localProd);
-          setSelectedVariant(localProd.variants?.[0] || null);
-          setRelatedProducts(fallbackProducts.filter(p => p.slug !== slug).slice(0, 4));
-        } else {
-          setError('Unable to load product. It may have been removed.');
-        }
+        setError('Unable to load product. It may have been removed.');
       } finally {
         setLoading(false);
       }

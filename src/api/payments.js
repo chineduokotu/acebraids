@@ -1,10 +1,20 @@
 import axiosClient from './axiosClient';
 
-// MOCK PAYMENT — replace with real Stripe/PayPal integration later
-export const processMockCheckout = async ({ orderDraft, cardDetails }) => {
-  const response = await axiosClient.post('/payments/mock-checkout', {
+export const fetchBankTransferDetails = async () => {
+  const response = await axiosClient.get('/payments/bank-transfer/details');
+  return response.data;
+};
+
+export const createBankTransferOrder = async ({ orderDraft }) => {
+  const response = await axiosClient.post('/payments/bank-transfer/order', {
     orderDraft,
-    cardDetails,
+  });
+  return response.data;
+};
+
+export const confirmBankTransferPayment = async (orderId, customerPaymentNote = '') => {
+  const response = await axiosClient.post(`/payments/bank-transfer/${orderId}/confirm`, {
+    customerPaymentNote,
   });
   return response.data;
 };

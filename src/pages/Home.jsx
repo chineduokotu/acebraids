@@ -6,11 +6,10 @@ import { BohoCrochetSpotlight } from '../components/home/BohoCrochetSpotlight';
 import { PromoBannerModal } from '../components/common/PromoBannerModal';
 import { fetchProducts } from '../api/products';
 import { fetchCustomerLooks } from '../api/customerLooks';
-import { fallbackProducts, fallbackCustomerLooks } from '../data/fallbackData';
 
 export const Home = () => {
-  const [products, setProducts] = useState(fallbackProducts);
-  const [customerLooks, setCustomerLooks] = useState(fallbackCustomerLooks);
+  const [products, setProducts] = useState([]);
+  const [customerLooks, setCustomerLooks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,7 +28,7 @@ export const Home = () => {
           setCustomerLooks(looksData.value);
         }
       } catch (err) {
-        console.error('Failed to load homepage data, using cached catalog:', err);
+        console.error('Failed to load homepage data:', err);
       } finally {
         setLoading(false);
       }

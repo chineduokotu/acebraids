@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, ShoppingBag, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
@@ -23,6 +23,23 @@ export const CartDrawer = () => {
   const { format } = useCurrency();
   const navigate = useNavigate();
 
+  const handleClose = () => {
+    setIsCartOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isCartOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isCartOpen]);
+
   if (!isCartOpen) return null;
 
   const handleCheckoutClick = () => {
@@ -34,7 +51,7 @@ export const CartDrawer = () => {
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        onClick={() => setIsCartOpen(false)}
+        onClick={handleClose}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
       />
 
@@ -49,9 +66,10 @@ export const CartDrawer = () => {
               </h2>
             </div>
             <button
-              onClick={() => setIsCartOpen(false)}
-              className="p-2 text-neutral-400 hover:text-ace-black transition rounded-full hover:bg-ace-alt"
-              aria-label="Close cart"
+              type="button"
+              onClick={handleClose}
+              className="p-2 text-neutral-400 hover:text-ace-black hover:bg-ace-alt cursor-pointer transition rounded-full"
+              aria-label="Close order panel"
             >
               <X className="w-5 h-5" />
             </button>

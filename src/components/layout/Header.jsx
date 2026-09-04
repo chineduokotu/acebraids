@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Heart, Search, Menu, User, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, Search, Menu } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
-import { useAuth } from '../../context/AuthContext';
 import { MobileMenu } from './MobileMenu';
 
 export const Header = () => {
@@ -14,7 +13,6 @@ export const Header = () => {
 
   const { totalItemsCount, setIsCartOpen } = useCart();
   const { wishlist } = useWishlist();
-  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -169,17 +167,6 @@ export const Header = () => {
                 )}
               </button>
 
-              {/* Admin Shortcut */}
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-ace-black text-white text-xs font-semibold rounded-full hover:bg-neutral-800 transition"
-                  title="Admin Dashboard"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-ace-pink" />
-                  Admin
-                </Link>
-              )}
             </div>
           </div>
 

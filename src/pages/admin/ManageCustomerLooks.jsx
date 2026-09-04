@@ -120,7 +120,7 @@ export const ManageCustomerLooks = () => {
           variant="primary"
           size="md"
           onClick={openCreateModal}
-          className="text-xs font-bold uppercase tracking-wider"
+          className="w-full sm:w-auto text-xs font-bold uppercase tracking-wider"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           <span>Add Video Look</span>
@@ -207,8 +207,8 @@ export const ManageCustomerLooks = () => {
 
       {/* Create / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-lg bg-neutral-900 rounded-3xl border border-neutral-800 shadow-2xl p-6 sm:p-8 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-neutral-900 rounded-2xl sm:rounded-3xl border border-neutral-800 shadow-2xl p-4 sm:p-8 space-y-5 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
               <h3 className="font-heading font-extrabold text-lg text-white">
                 {editingLook ? 'Edit Customer Video Look' : 'Add Customer Video Look'}
@@ -309,7 +309,7 @@ export const ManageCustomerLooks = () => {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-neutral-800">
                 <Button
                   variant="ghost"
                   size="md"

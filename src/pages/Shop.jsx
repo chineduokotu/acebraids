@@ -6,12 +6,11 @@ import { QuickViewModal } from '../components/product/QuickViewModal';
 import { Loader } from '../components/common/Loader';
 import { fetchProducts } from '../api/products';
 import { fetchCategories } from '../api/categories';
-import { fallbackProducts, fallbackCategories } from '../data/fallbackData';
 
 export const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState(fallbackProducts);
-  const [categories, setCategories] = useState(fallbackCategories);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
@@ -48,7 +47,8 @@ export const Shop = () => {
           setProducts(data.products);
         }
       } catch (err) {
-        console.error('Failed to fetch products, using cached catalog:', err);
+        console.error('Failed to fetch products:', err);
+        setProducts([]);
       } finally {
         setLoading(false);
       }

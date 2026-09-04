@@ -1,8 +1,12 @@
 import axios from 'axios';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-  : '/api';
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+const apiOrigin = configuredApiUrl || (
+  import.meta.env.DEV
+    ? 'http://localhost:5000'
+    : 'https://acebraids-api.onrender.com'
+);
+const apiBaseUrl = `${apiOrigin.replace(/\/$/, '')}/api`;
 
 const axiosClient = axios.create({
   baseURL: apiBaseUrl,

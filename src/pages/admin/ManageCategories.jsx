@@ -123,7 +123,7 @@ export const ManageCategories = () => {
 
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-ace-pink hover:bg-ace-dark text-white rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-pink-glow"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-ace-pink hover:bg-ace-dark text-white rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-pink-glow"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Category</span>
@@ -146,8 +146,8 @@ export const ManageCategories = () => {
       )}
 
       {/* Search Filter Strip */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex-1 w-full sm:max-w-md">
           <input
             type="text"
             value={search}
@@ -157,7 +157,7 @@ export const ManageCategories = () => {
           />
           <Search className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
         </div>
-        <span className="text-xs font-semibold text-neutral-400">
+        <span className="text-xs font-semibold text-neutral-400 self-start sm:self-auto">
           Total Collections: <strong className="text-white">{categories.length}</strong>
         </span>
       </div>
@@ -246,8 +246,8 @@ export const ManageCategories = () => {
 
       {/* Modal Dialog for Create/Edit Category */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl animate-fade-in my-8">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-8 space-y-5 shadow-2xl animate-fade-in my-4 sm:my-8 max-h-[94vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
               <h2 className="font-heading font-extrabold text-lg text-white flex items-center gap-2">
                 <Layers className="w-5 h-5 text-ace-pink" />
@@ -349,11 +349,11 @@ export const ManageCategories = () => {
               </div>
 
               {/* Submit Buttons */}
-              <div className="pt-4 border-t border-neutral-800 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-neutral-800 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl text-xs font-bold transition"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl text-xs font-bold transition"
                 >
                   Cancel
                 </button>

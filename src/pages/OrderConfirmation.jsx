@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle2, Copy, Check, Truck, ArrowRight, Printer, Sparkles, MapPin, CreditCard } from 'lucide-react';
+import { CheckCircle2, Copy, Check, Truck, ArrowRight, Printer, MapPin } from 'lucide-react';
 import { fetchOrderById } from '../api/orders';
 import { useCurrency } from '../context/CurrencyContext';
 import { Loader } from '../components/common/Loader';
@@ -70,7 +70,7 @@ export const OrderConfirmation = () => {
             We're preparing your luxury crown
           </h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-2">
-            A confirmation receipt has been simulated and sent to <strong className="text-ace-black">{order.guestInfo?.email}</strong>.
+            A confirmation receipt has been sent to <strong className="text-ace-black">{order.guestInfo?.email}</strong>.
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export const OrderConfirmation = () => {
               <strong className="text-ace-black font-mono">{order._id}</strong>
             </div>
             <div>
-              <span>Mock Payment: </span>
+              <span>Payment Reference: </span>
               <strong className="text-emerald-700 font-mono">{order.paymentRef}</strong>
             </div>
           </div>
@@ -158,7 +158,9 @@ export const OrderConfirmation = () => {
               </span>
             </div>
             <div className="flex justify-between text-base pt-2 border-t border-ace-border/60">
-              <span className="font-heading font-extrabold text-ace-black">Total Paid</span>
+              <span className="font-heading font-extrabold text-ace-black">
+                {order.paymentStatus === 'paid' || order.paymentStatus === 'mock_paid' ? 'Total Paid' : 'Order Total'}
+              </span>
               <span className="font-heading font-black text-xl text-ace-pink">
                 {format(order.total)}
               </span>

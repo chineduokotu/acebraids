@@ -202,9 +202,65 @@ export const ManageProducts = () => {
       {loading ? (
         <Loader text="Loading catalog..." />
       ) : (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
+        <>
+        <div className="md:hidden space-y-3">
+          {filteredProducts.map((prod) => (
+            <div key={prod._id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 space-y-4">
+              <div className="flex gap-3">
+                <img
+                  src={prod.images?.[0]?.url || '/uploads/IMG_4065.PNG'}
+                  alt={prod.name}
+                  className="w-16 h-20 object-cover rounded-xl border border-neutral-700 flex-shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-heading font-bold text-sm text-white leading-tight line-clamp-2">{prod.name}</h3>
+                  <p className="text-[11px] text-neutral-500 font-mono truncate mt-1">/{prod.slug}</p>
+                  <p className="text-[11px] text-neutral-400 mt-1 line-clamp-1">{prod.category?.name || 'Uncategorized'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                  <span className="block text-neutral-500 text-[10px] uppercase font-bold">Price</span>
+                  <strong className="text-white">{format(prod.price)}</strong>
+                  {prod.discountPrice && <span className="block text-[10px] text-emerald-400">Sale: {format(prod.discountPrice)}</span>}
+                </div>
+                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                  <span className="block text-neutral-500 text-[10px] uppercase font-bold">Variants</span>
+                  <strong className="text-white">{prod.variants?.length || 0} option(s)</strong>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="flex flex-wrap gap-1.5">
+                  {prod.isFeatured && <span className="bg-pink-950 text-ace-pink border border-pink-800 px-2 py-0.5 rounded-full text-[10px] font-bold">Featured</span>}
+                  {prod.isNewArrival && <span className="bg-neutral-800 text-neutral-300 px-2 py-0.5 rounded-full text-[10px] font-bold">New</span>}
+                  {prod.isSoldOut && <span className="bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded-full text-[10px] font-bold">Sold Out</span>}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => openEditModal(prod)}
+                    className="p-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition"
+                    title="Edit product"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(prod._id)}
+                    className="p-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-400 hover:text-white transition"
+                    title="Delete product"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[820px] text-left text-xs">
               <thead className="bg-neutral-950/60 text-neutral-400 uppercase tracking-wider border-b border-neutral-800">
                 <tr>
                   <th className="py-3.5 px-6 font-semibold">Product</th>
@@ -277,12 +333,13 @@ export const ManageProducts = () => {
             </table>
           </div>
         </div>
+        </>
       )}
 
       {/* Create / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-3xl bg-neutral-900 rounded-3xl border border-neutral-800 shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-3xl bg-neutral-900 rounded-2xl sm:rounded-3xl border border-neutral-800 shadow-2xl p-4 sm:p-8 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 mb-6 border-b border-neutral-800">
               <h3 className="font-heading font-extrabold text-lg text-white">
                 {editingProduct ? 'Edit Hair Product' : 'Create New Hair Product'}
@@ -410,7 +467,7 @@ export const ManageProducts = () => {
 
               {/* Variants Section */}
               <div className="p-4 bg-neutral-950 rounded-2xl border border-neutral-800 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider">Variants (Colors, Lengths, Stock)</h4>
                   <button
                     type="button"
@@ -423,7 +480,7 @@ export const ManageProducts = () => {
 
                 <div className="space-y-2">
                   {formData.variants.map((v, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-neutral-900 p-2.5 rounded-xl border border-neutral-800 text-xs">
+                    <div key={idx} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-center bg-neutral-900 p-2.5 rounded-xl border border-neutral-800 text-xs">
                       <input
                         type="text"
                         placeholder="Color (1B, #27, etc)"
@@ -433,7 +490,7 @@ export const ManageProducts = () => {
                           updated[idx].color = e.target.value;
                           setFormData({ ...formData, variants: updated });
                         }}
-                        className="col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-white text-xs"
+                        className="col-span-1 sm:col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
                       />
                       <input
                         type="text"
@@ -444,7 +501,7 @@ export const ManageProducts = () => {
                           updated[idx].length = e.target.value;
                           setFormData({ ...formData, variants: updated });
                         }}
-                        className="col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-white text-xs"
+                        className="col-span-1 sm:col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
                       />
                       <input
                         type="number"
@@ -455,7 +512,7 @@ export const ManageProducts = () => {
                           updated[idx].stock = Number(e.target.value);
                           setFormData({ ...formData, variants: updated });
                         }}
-                        className="col-span-2 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-white text-xs"
+                        className="col-span-1 sm:col-span-2 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
                       />
                       <input
                         type="text"
@@ -466,13 +523,13 @@ export const ManageProducts = () => {
                           updated[idx].capSize = e.target.value;
                           setFormData({ ...formData, variants: updated });
                         }}
-                        className="col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-white text-xs"
+                        className="col-span-1 sm:col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
                       />
                       <button
                         type="button"
                         onClick={() => removeVariantRow(idx)}
                         disabled={formData.variants.length <= 1}
-                        className="col-span-1 text-neutral-500 hover:text-rose-400 text-center"
+                        className="col-span-2 sm:col-span-1 text-neutral-500 hover:text-rose-400 text-center"
                       >
                         <X className="w-4 h-4 mx-auto" />
                       </button>
@@ -482,7 +539,7 @@ export const ManageProducts = () => {
               </div>
 
               {/* Toggles */}
-              <div className="flex items-center gap-6 text-xs text-neutral-300">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-xs text-neutral-300">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -505,7 +562,7 @@ export const ManageProducts = () => {
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-neutral-800">
                 <Button
                   variant="ghost"
                   size="md"

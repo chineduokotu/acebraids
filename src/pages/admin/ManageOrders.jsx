@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, Search, Truck, CheckCircle2, Clock, AlertCircle, X, ExternalLink } from 'lucide-react';
-import { fetchAdminOrders, updateOrderStatus } from '../../api/orders';
+import { Eye, Search, CheckCircle2, Clock, AlertCircle, X, XCircle } from 'lucide-react';
+import { fetchAdminOrders, updateOrderStatus, approveOrderPayment, rejectOrderPayment } from '../../api/orders';
 import { useCurrency } from '../../context/CurrencyContext';
 import { Button } from '../../components/common/Button';
 import { Loader } from '../../components/common/Loader';
@@ -12,6 +12,7 @@ export const ManageOrders = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [paymentUpdating, setPaymentUpdating] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
   const { format } = useCurrency();
@@ -61,6 +62,43 @@ export const ManageOrders = () => {
     }
   };
 
+  const handleApprovePayment = async (orderId) => {
+    setPaymentUpdating(true);
+    setFeedback(null);
+    try {
+      const updated = await approveOrderPayment(orderId);
+      setOrders(prev => prev.map(o => o._id === orderId ? updated : o));
+      if (selectedOrder?._id === orderId) {
+        setSelectedOrder(updated);
+      }
+      setFeedback({ type: 'success', text: 'Payment approved and order moved to processing' });
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.message || 'Failed to approve payment' });
+    } finally {
+      setPaymentUpdating(false);
+    }
+  };
+
+  const handleRejectPayment = async (orderId) => {
+    const reason = window.prompt('Reason for rejecting this payment:');
+    if (reason === null) return;
+
+    setPaymentUpdating(true);
+    setFeedback(null);
+    try {
+      const updated = await rejectOrderPayment(orderId, reason.trim());
+      setOrders(prev => prev.map(o => o._id === orderId ? updated : o));
+      if (selectedOrder?._id === orderId) {
+        setSelectedOrder(updated);
+      }
+      setFeedback({ type: 'success', text: 'Payment rejected and customer notification queued' });
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.message || 'Failed to reject payment' });
+    } finally {
+      setPaymentUpdating(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'delivered':
@@ -73,6 +111,23 @@ export const ManageOrders = () => {
         return 'bg-amber-950 text-amber-400 border border-amber-800';
     }
   };
+
+  const getPaymentBadge = (status) => {
+    switch (status) {
+      case 'paid':
+      case 'mock_paid':
+        return 'bg-emerald-950 text-emerald-400 border border-emerald-800';
+      case 'awaiting_verification':
+        return 'bg-amber-950 text-amber-400 border border-amber-800';
+      case 'rejected':
+      case 'failed':
+        return 'bg-rose-950 text-rose-400 border border-rose-800';
+      default:
+        return 'bg-neutral-800 text-neutral-300 border border-neutral-700';
+    }
+  };
+
+  const pendingTransfers = orders.filter(order => order.paymentStatus === 'awaiting_verification');
 
   return (
     <div className="space-y-6">
@@ -123,8 +178,62 @@ export const ManageOrders = () => {
               {st}
             </button>
           ))}
+          <button
+            onClick={() => setStatusFilter('awaiting_verification')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold capitalize transition ${
+              statusFilter === 'awaiting_verification'
+                ? 'bg-ace-pink text-white shadow-pink-glow'
+                : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
+            }`}
+          >
+            Pending Transfers
+          </button>
         </div>
       </div>
+
+      {pendingTransfers.length > 0 && (
+        <div className="bg-amber-950/30 border border-amber-800 rounded-3xl p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-heading font-extrabold text-lg text-white">Pending Bank Transfers</h2>
+              <p className="text-xs text-amber-300/80">Review submitted transfers and approve or reject payment.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-amber-900 text-amber-100 text-xs font-bold">
+              {pendingTransfers.length} awaiting review
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {pendingTransfers.map((ord) => (
+              <div key={ord._id} className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-xs">
+                  <p className="font-mono font-bold text-ace-pink">{ord.paymentRef}</p>
+                  <p className="font-bold text-white mt-1">{ord.guestInfo?.firstName} {ord.guestInfo?.lastName}</p>
+                  <p className="text-neutral-400">{ord.guestInfo?.email} / {format(ord.total)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={paymentUpdating}
+                    onClick={() => handleApprovePayment(ord._id)}
+                    className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Approve
+                  </button>
+                  <button
+                    disabled={paymentUpdating}
+                    onClick={() => handleRejectPayment(ord._id)}
+                    className="px-3 py-2 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Orders Table */}
       {loading ? (
@@ -134,17 +243,90 @@ export const ManageOrders = () => {
           No orders matching criteria.
         </div>
       ) : (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
+        <>
+        <div className="md:hidden space-y-3">
+          {orders.map((ord) => (
+            <div key={ord._id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono font-bold text-ace-pink text-sm truncate">{ord.trackingCode}</p>
+                  <p className="font-bold text-white mt-1">{ord.guestInfo?.firstName} {ord.guestInfo?.lastName}</p>
+                  <p className="text-[11px] text-neutral-500 truncate">{ord.guestInfo?.email}</p>
+                </div>
+                <strong className="text-white text-sm flex-shrink-0">{format(ord.total)}</strong>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                  <span className="block text-neutral-500 text-[10px] uppercase font-bold">Payment</span>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getPaymentBadge(ord.paymentStatus)}`}>
+                    {(ord.paymentStatus || 'pending').replace(/_/g, ' ')}
+                  </span>
+                </div>
+                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                  <span className="block text-neutral-500 text-[10px] uppercase font-bold">Fulfillment</span>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getStatusBadge(ord.orderStatus)}`}>
+                    {ord.orderStatus}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-xs text-neutral-400">
+                <p>{ord.guestInfo?.shippingAddress?.city}, {ord.guestInfo?.shippingAddress?.country}</p>
+                <p>{ord.items?.length} style(s)</p>
+              </div>
+
+              {ord.paymentStatus === 'awaiting_verification' ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    disabled={paymentUpdating}
+                    onClick={() => handleApprovePayment(ord._id)}
+                    className="col-span-1 px-3 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Paid
+                  </button>
+                  <button
+                    disabled={paymentUpdating}
+                    onClick={() => handleRejectPayment(ord._id)}
+                    className="col-span-1 px-3 py-2.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => setSelectedOrder(ord)}
+                    className="col-span-1 px-3 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    View
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setSelectedOrder(ord)}
+                  className="w-full px-3 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Inspect Order</span>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[960px] text-left text-xs">
               <thead className="bg-neutral-950/60 text-neutral-400 uppercase tracking-wider border-b border-neutral-800">
                 <tr>
                   <th className="py-3.5 px-6 font-semibold">Tracking Code</th>
                   <th className="py-3.5 px-4 font-semibold">Customer</th>
                   <th className="py-3.5 px-4 font-semibold">Destination</th>
                   <th className="py-3.5 px-4 font-semibold">Items</th>
-                  <th className="py-3.5 px-4 font-semibold">Total Paid</th>
-                  <th className="py-3.5 px-4 font-semibold">Status</th>
+                  <th className="py-3.5 px-4 font-semibold">Total</th>
+                  <th className="py-3.5 px-4 font-semibold">Payment</th>
+                  <th className="py-3.5 px-4 font-semibold">Fulfillment</th>
                   <th className="py-3.5 px-6 font-semibold text-right">Action</th>
                 </tr>
               </thead>
@@ -168,6 +350,11 @@ export const ManageOrders = () => {
                       {format(ord.total)}
                     </td>
                     <td className="py-4 px-4">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${getPaymentBadge(ord.paymentStatus)}`}>
+                        {(ord.paymentStatus || 'pending').replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${getStatusBadge(ord.orderStatus)}`}>
                         {ord.orderStatus}
                       </span>
@@ -187,16 +374,17 @@ export const ManageOrders = () => {
             </table>
           </div>
         </div>
+        </>
       )}
 
       {/* Order Inspect & Manage Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-2xl bg-neutral-900 rounded-3xl border border-neutral-800 shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto space-y-6">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-neutral-900 rounded-2xl sm:rounded-3xl border border-neutral-800 shadow-2xl p-4 sm:p-8 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Order Management</span>
-                <h3 className="font-mono font-black text-xl text-ace-pink">
+                <h3 className="font-mono font-black text-lg sm:text-xl text-ace-pink break-all">
                   {selectedOrder.trackingCode}
                 </h3>
               </div>
@@ -209,17 +397,53 @@ export const ManageOrders = () => {
             </div>
 
             {/* Quick Status Updater */}
+            {selectedOrder.paymentStatus === 'awaiting_verification' && (
+              <div className="bg-amber-950/30 p-4 rounded-2xl border border-amber-800 space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-white uppercase tracking-wider">
+                    Bank Transfer Verification
+                  </label>
+                  <p className="text-xs text-amber-300/80 mt-1">
+                    Reference {selectedOrder.paymentRef} / {format(selectedOrder.total)}
+                  </p>
+                </div>
+                {selectedOrder.customerPaymentNote && (
+                  <p className="text-xs text-neutral-300 bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                    {selectedOrder.customerPaymentNote}
+                  </p>
+                )}
+                <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
+                  <button
+                    disabled={paymentUpdating}
+                    onClick={() => handleApprovePayment(selectedOrder._id)}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Approve as Paid
+                  </button>
+                  <button
+                    disabled={paymentUpdating}
+                    onClick={() => handleRejectPayment(selectedOrder._id)}
+                    className="px-4 py-2.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-3">
               <label className="block text-xs font-bold text-white uppercase tracking-wider">
                 Update Fulfillment Status
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((st) => (
                   <button
                     key={st}
                     disabled={statusUpdating}
                     onClick={() => handleStatusChange(selectedOrder._id, st, selectedOrder.carrier, selectedOrder.trackingCode)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold uppercase transition ${
                       selectedOrder.orderStatus === st
                         ? 'bg-ace-pink text-white shadow-pink-glow'
                         : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
@@ -239,6 +463,7 @@ export const ManageOrders = () => {
                 <p><span className="text-neutral-500">Email:</span> {selectedOrder.guestInfo?.email}</p>
                 <p><span className="text-neutral-500">Phone:</span> {selectedOrder.guestInfo?.phone || 'N/A'}</p>
                 <p><span className="text-neutral-500">Payment Ref:</span> <span className="font-mono text-emerald-400">{selectedOrder.paymentRef}</span></p>
+                <p><span className="text-neutral-500">Payment:</span> <span className="font-bold capitalize">{selectedOrder.paymentStatus?.replace(/_/g, ' ')}</span></p>
               </div>
 
               <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-1">
@@ -255,10 +480,10 @@ export const ManageOrders = () => {
               <h4 className="font-bold text-white text-xs uppercase tracking-wider mb-3">Order Items ({selectedOrder.items?.length})</h4>
               <div className="divide-y divide-neutral-800 bg-neutral-950 rounded-2xl border border-neutral-800 overflow-hidden">
                 {selectedOrder.items?.map((item, idx) => (
-                  <div key={idx} className="p-3.5 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-3">
+                  <div key={idx} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3 min-w-0">
                       <img src={item.image || '/uploads/IMG_4065.PNG'} alt={item.name} className="w-10 h-12 rounded-lg object-cover border border-neutral-700" />
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-bold text-white font-heading">{item.name}</p>
                         <p className="text-[11px] text-neutral-400">{item.variant?.label || item.variant?.color}</p>
                         <p className="text-[11px] text-neutral-500">Qty: {item.qty} × {format(item.price)}</p>
@@ -270,9 +495,9 @@ export const ManageOrders = () => {
               </div>
             </div>
 
-            {/* Total Paid */}
+            {/* Total */}
             <div className="flex justify-between items-baseline pt-2 text-sm border-t border-neutral-800">
-              <span className="font-bold text-neutral-400">Total Collected</span>
+              <span className="font-bold text-neutral-400">Order Total</span>
               <span className="font-black text-xl text-ace-pink font-heading">{format(selectedOrder.total)}</span>
             </div>
           </div>

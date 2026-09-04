@@ -8,6 +8,7 @@ import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { OrderConfirmation } from './pages/OrderConfirmation';
 import { OrderTracking } from './pages/OrderTracking';
+import { PaymentPending } from './pages/PaymentPending';
 import { Wishlist } from './pages/Wishlist';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: 'cart', element: <Cart /> },
       { path: 'checkout', element: <Checkout /> },
       { path: 'order-confirmation/:id', element: <OrderConfirmation /> },
+      { path: 'payment-pending/:id', element: <PaymentPending /> },
       { path: 'order-tracking', element: <OrderTracking /> },
       { path: 'wishlist', element: <Wishlist /> },
       { path: 'about-us', element: <About /> },
