@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+export const AUTH_EXPIRED_EVENT = 'ace:auth-expired';
+
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 const apiOrigin = configuredApiUrl || (
   import.meta.env.DEV
@@ -20,10 +22,15 @@ const axiosClient = axios.create({
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401 && !error.config?.skipAuthExpiration) {
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
+    // Never propagate Axios request/config objects: they can contain passwords.
     const customError = {
       message: error.response?.data?.message || error.message || 'Something went wrong',
       status: error.response?.status,
-      data: error.response?.data,
+      code: error.response?.data?.code,
+      retryAfter: Number(error.response?.headers?.['retry-after']) || 0,
     };
     return Promise.reject(customError);
   }

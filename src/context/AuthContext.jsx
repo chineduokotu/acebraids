@@ -1,52 +1,50 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCurrentUser, logoutUser } from '../api/auth';
+import { AUTH_EXPIRED_EVENT } from '../api/axiosClient';
+import { persistAuthProfile, readAuthProfile } from '../utils/authProfile';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ace_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState(readAuthProfile);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+    const clearSession = () => {
+      setUser(persistAuthProfile(null));
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, clearSession);
+
     const checkAuth = async () => {
       try {
-        if (user) {
-          const freshUser = await getCurrentUser();
-          setUser(freshUser);
-          localStorage.setItem('ace_user', JSON.stringify(freshUser));
-        }
-      } catch (err) {
-        console.warn('Session expired or not logged in');
-        setUser(null);
-        localStorage.removeItem('ace_user');
+        const freshUser = await getCurrentUser();
+        if (active) setUser(persistAuthProfile(freshUser));
+      } catch {
+        if (active) clearSession();
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     checkAuth();
+    return () => {
+      active = false;
+      window.removeEventListener(AUTH_EXPIRED_EVENT, clearSession);
+    };
   }, []);
 
   const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('ace_user', JSON.stringify(userData));
+    setUser(persistAuthProfile(userData));
   };
 
   const logout = async () => {
     try {
       await logoutUser();
-    } catch (e) {
-      console.warn('Logout API failed', e);
+    } catch {
+      // Do not log request objects, which may include private authentication data.
     }
-    setUser(null);
-    localStorage.removeItem('ace_user');
+    setUser(persistAuthProfile(null));
   };
 
   const isAdmin = user?.role === 'admin';

@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Landmark, Lock, ArrowLeft, AlertCircle, CheckCircle2, Truck, Copy } from 'lucide-react';
+import { Landmark, Lock, ArrowLeft, AlertCircle, CheckCircle2, Truck, Copy, CreditCard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useCurrency } from '../context/CurrencyContext';
-import { createBankTransferOrder, confirmBankTransferPayment, fetchBankTransferDetails } from '../api/payments';
+import {
+  createBankTransferOrder,
+  confirmBankTransferPayment,
+  createStripeCheckoutSession,
+  fetchBankTransferDetails,
+} from '../api/payments';
 import { validateEmail } from '../utils/validators';
 import { Button } from '../components/common/Button';
 
@@ -29,6 +34,7 @@ export const Checkout = () => {
   const [bankDetails, setBankDetails] = useState(null);
   const [verificationWindowMinutes, setVerificationWindowMinutes] = useState(30);
   const [createdOrder, setCreatedOrder] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
   const [processing, setProcessing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -115,13 +121,22 @@ export const Checkout = () => {
 
     setProcessing(true);
     try {
-      const response = await createBankTransferOrder({ orderDraft: buildOrderDraft() });
-      setCreatedOrder(response.order);
-      setBankDetails(response.bankDetails || bankDetails);
-      setVerificationWindowMinutes(response.verificationWindowMinutes || verificationWindowMinutes);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (paymentMethod === 'stripe') {
+        const response = await createStripeCheckoutSession({ orderDraft: buildOrderDraft() });
+        setCreatedOrder(response.order);
+        if (response.checkoutUrl) {
+          window.location.href = response.checkoutUrl;
+          return;
+        }
+      } else {
+        const response = await createBankTransferOrder({ orderDraft: buildOrderDraft() });
+        setCreatedOrder(response.order);
+        setBankDetails(response.bankDetails || bankDetails);
+        setVerificationWindowMinutes(response.verificationWindowMinutes || verificationWindowMinutes);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (err) {
-      setErrorMsg(err.message || 'Unable to create your bank transfer order. Please try again.');
+      setErrorMsg(err.message || `Unable to create your ${paymentMethod === 'stripe' ? 'Stripe' : 'bank transfer'} order. Please try again.`);
     } finally {
       setProcessing(false);
     }
@@ -265,40 +280,74 @@ export const Checkout = () => {
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-ace-border/70 shadow-soft">
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-ace-border/60">
                   <div className="flex items-center gap-2">
-                    <Landmark className="w-5 h-5 text-ace-pink" />
+                    <CreditCard className="w-5 h-5 text-ace-pink" />
                     <h2 className="font-heading font-extrabold text-base sm:text-lg text-ace-black">
-                      3. Bank Transfer Payment
+                      3. Payment Method
                     </h2>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold border border-emerald-200">
                     <Lock className="w-3 h-3" />
-                    <span>Manual Verification</span>
+                    <span>Secure Checkout</span>
                   </div>
                 </div>
 
-                <div className="space-y-3 text-xs">
-                  {[
-                    ['Bank Name', bankDetails?.bankName],
-                    ['Account Name', bankDetails?.accountName],
-                    ['Account Number', bankDetails?.accountNumber],
-                    ['Sort Code', bankDetails?.sortCode],
-                    ['IBAN', bankDetails?.iban],
-                    ['BIC', bankDetails?.bic],
-                    ['Payment Reference', createdOrder?.paymentRef || 'Generated after order is placed'],
-                    ['Amount', format(createdOrder?.total || finalTotal)],
-                  ].filter(([, value]) => value).map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between gap-3 bg-ace-alt border border-ace-border/70 rounded-xl px-3.5 py-2.5">
-                      <span className="text-neutral-500 font-semibold">{label}</span>
-                      <button type="button" onClick={() => copyValue(label, String(value))} className="font-mono font-bold text-ace-black text-right inline-flex items-center gap-1.5">
-                        <span>{value}</span>
-                        {copied === label ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
-                      </button>
+                <div className="grid gap-3 sm:grid-cols-2 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('stripe')}
+                    className={`rounded-2xl border p-4 text-left transition ${paymentMethod === 'stripe' ? 'border-ace-pink bg-pink-50' : 'border-ace-border bg-ace-alt'}`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="w-4 h-4 text-ace-pink" />
+                      <span className="font-bold text-ace-black text-sm">Stripe Card</span>
                     </div>
-                  ))}
+                    <p className="text-[11px] text-neutral-600">Pay by card using Stripe checkout.</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('bank_transfer')}
+                    className={`rounded-2xl border p-4 text-left transition ${paymentMethod === 'bank_transfer' ? 'border-ace-pink bg-pink-50' : 'border-ace-border bg-ace-alt'}`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Landmark className="w-4 h-4 text-ace-pink" />
+                      <span className="font-bold text-ace-black text-sm">Bank Transfer</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-600">Manual bank transfer and verification.</p>
+                  </button>
                 </div>
 
-                <label className="block text-xs font-semibold text-neutral-600 mt-5 mb-1">Transfer Note</label>
-                <textarea name="customerPaymentNote" rows="3" value={formData.customerPaymentNote} onChange={handleInputChange} placeholder="Optional: bank sender name, transfer reference, or note for our team" className="w-full bg-ace-alt border border-ace-border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-ace-pink focus:bg-white" />
+                {paymentMethod === 'bank_transfer' ? (
+                  <>
+                    <div className="space-y-3 text-xs">
+                      {[
+                        ['Bank Name', bankDetails?.bankName],
+                        ['Account Name', bankDetails?.accountName],
+                        ['Account Number', bankDetails?.accountNumber],
+                        ['Sort Code', bankDetails?.sortCode],
+                        ['IBAN', bankDetails?.iban],
+                        ['BIC', bankDetails?.bic],
+                        ['Payment Reference', createdOrder?.paymentRef || 'Generated after order is placed'],
+                        ['Amount', format(createdOrder?.total || finalTotal)],
+                      ].filter(([, value]) => value).map(([label, value]) => (
+                        <div key={label} className="flex items-center justify-between gap-3 bg-ace-alt border border-ace-border/70 rounded-xl px-3.5 py-2.5">
+                          <span className="text-neutral-500 font-semibold">{label}</span>
+                          <button type="button" onClick={() => copyValue(label, String(value))} className="font-mono font-bold text-ace-black text-right inline-flex items-center gap-1.5">
+                            <span>{value}</span>
+                            {copied === label ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <label className="block text-xs font-semibold text-neutral-600 mt-5 mb-1">Transfer Note</label>
+                    <textarea name="customerPaymentNote" rows="3" value={formData.customerPaymentNote} onChange={handleInputChange} placeholder="Optional: bank sender name, transfer reference, or note for our team" className="w-full bg-ace-alt border border-ace-border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-ace-pink focus:bg-white" />
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-ace-border bg-ace-alt p-4 text-xs text-neutral-600">
+                    You’ll be redirected to Stripe’s secure checkout page to complete payment with your card.
+                  </div>
+                )}
 
                 {errorMsg && (
                   <div className="mt-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
@@ -310,7 +359,7 @@ export const Checkout = () => {
                 <div className="mt-8">
                   {!createdOrder ? (
                     <Button type="submit" variant="primary" size="xl" loading={processing} className="w-full text-sm font-extrabold uppercase tracking-wider py-4 shadow-pink-glow">
-                      <span>Place Bank Transfer Order</span>
+                      <span>{paymentMethod === 'stripe' ? 'Pay with Stripe' : 'Place Bank Transfer Order'}</span>
                     </Button>
                   ) : (
                     <Button type="button" variant="primary" size="xl" loading={confirming} onClick={handleConfirmTransfer} className="w-full text-sm font-extrabold uppercase tracking-wider py-4 shadow-pink-glow">

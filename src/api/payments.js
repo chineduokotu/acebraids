@@ -12,6 +12,13 @@ export const createBankTransferOrder = async ({ orderDraft }) => {
   return response.data;
 };
 
+export const createStripeCheckoutSession = async ({ orderDraft }) => {
+  const response = await axiosClient.post('/payments/stripe/checkout-session', {
+    orderDraft,
+  });
+  return response.data;
+};
+
 export const confirmBankTransferPayment = async (orderId, customerPaymentNote = '') => {
   const response = await axiosClient.post(`/payments/bank-transfer/${orderId}/confirm`, {
     customerPaymentNote,

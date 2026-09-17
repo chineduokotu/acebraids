@@ -1,22 +1,27 @@
 import axiosClient from './axiosClient';
 
 export const loginUser = async (credentials) => {
-  const response = await axiosClient.post('/auth/login', credentials);
+  const response = await axiosClient.post('/auth/login', credentials, { skipAuthExpiration: true });
   return response.data;
 };
 
 export const adminLoginUser = async (credentials) => {
-  const response = await axiosClient.post('/auth/admin/login', credentials);
+  const response = await axiosClient.post('/auth/admin/login', credentials, { skipAuthExpiration: true });
   return response.data;
 };
 
 export const registerUser = async (userData) => {
-  const response = await axiosClient.post('/auth/register', userData);
+  const response = await axiosClient.post('/auth/register', userData, { skipAuthExpiration: true });
   return response.data;
 };
 
 export const getCurrentUser = async () => {
   const response = await axiosClient.get('/auth/me');
+  return response.data;
+};
+
+export const changeAdminPassword = async (passwords) => {
+  const response = await axiosClient.post('/auth/admin/change-password', passwords);
   return response.data;
 };
 

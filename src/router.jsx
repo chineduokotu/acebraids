@@ -15,6 +15,7 @@ import { Contact } from './pages/Contact';
 
 // Admin Pages
 import { AdminLogin } from './pages/admin/AdminLogin';
+import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { Dashboard } from './pages/admin/Dashboard';
 import { ManageProducts } from './pages/admin/ManageProducts';
@@ -26,7 +27,7 @@ import { useAuth } from './context/AuthContext';
 // Protected Route wrapper for admin
 const AdminRoute = ({ children }) => {
   const { isAdmin, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <div role="status" className="min-h-screen bg-neutral-950 text-neutral-300 flex items-center justify-center text-sm">Checking your session…</div>;
   return isAdmin ? children : <Navigate to="/admin/login" replace />;
 };
 
@@ -66,6 +67,7 @@ export const router = createBrowserRouter([
       { path: 'categories', element: <ManageCategories /> },
       { path: 'orders', element: <ManageOrders /> },
       { path: 'customer-looks', element: <ManageCustomerLooks /> },
+      { path: 'settings', element: <AdminSettings /> },
     ],
   },
   {

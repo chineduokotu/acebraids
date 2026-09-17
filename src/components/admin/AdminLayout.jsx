@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Layers, ShoppingCart, Film, LogOut, Store } from 'lucide-react';
+import { LayoutDashboard, Package, Layers, ShoppingCart, Film, LogOut, Store, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ScrollToTop } from '../common/ScrollToTop';
 
@@ -19,6 +19,7 @@ export const AdminLayout = () => {
     { name: 'Categories', path: '/admin/categories', icon: Layers },
     { name: 'Orders', path: '/admin/orders', icon: ShoppingCart },
     { name: 'Customer Looks', path: '/admin/customer-looks', icon: Film },
+    { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
   return (
