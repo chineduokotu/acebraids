@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Eye, Search, CheckCircle2, Clock, AlertCircle, X, XCircle } from 'lucide-react';
-import { fetchAdminOrders, updateOrderStatus, approveOrderPayment, rejectOrderPayment } from '../../api/orders';
-import { useCurrency } from '../../context/CurrencyContext';
+import { fetchAdminOrders, fetchOrderById, updateOrderStatus, approveOrderPayment, rejectOrderPayment } from '../../api/orders';
+import { useAdminNotifications } from '../../context/AdminNotificationsContext';
+import { formatPaymentAmount, paymentStatusLabel, canVerifyBankTransfer } from '../../utils/paymentDisplay';
 import { Button } from '../../components/common/Button';
 import { Loader } from '../../components/common/Loader';
 
@@ -15,26 +17,47 @@ export const ManageOrders = () => {
   const [paymentUpdating, setPaymentUpdating] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  const { format } = useCurrency();
+  const { paymentRevision } = useAdminNotifications();
+  const [searchParams] = useSearchParams();
+  const requestedOrderId = searchParams.get('order');
+  const requestVersion = useRef(0);
 
-  const loadOrders = async () => {
-    setLoading(true);
+  const loadOrders = async ({ quiet = false } = {}) => {
+    const version = ++requestVersion.current;
+    if (!quiet) setLoading(true);
     try {
       const data = await fetchAdminOrders({
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: search || undefined,
       });
+      if (version !== requestVersion.current) return;
       setOrders(data.orders || []);
+      setSelectedOrder((selected) => selected ? data.orders?.find((order) => order._id === selected._id) || selected : null);
     } catch (err) {
-      console.error('Failed to load orders:', err);
+      if (version === requestVersion.current) setFeedback({ type: 'error', text: err.message || 'Failed to load orders. Please try again.' });
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadOrders();
   }, [statusFilter]);
+
+  useEffect(() => {
+    if (paymentRevision > 0) loadOrders({ quiet: true });
+  }, [paymentRevision]);
+
+  useEffect(() => {
+    if (!requestedOrderId) return undefined;
+    let active = true;
+    fetchOrderById(requestedOrderId).then((order) => {
+      if (active) setSelectedOrder(order);
+    }).catch((err) => {
+      if (active) setFeedback({ type: 'error', text: err.message || 'Unable to open this order.' });
+    });
+    return () => { active = false; };
+  }, [requestedOrderId, paymentRevision]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -127,7 +150,7 @@ export const ManageOrders = () => {
     }
   };
 
-  const pendingTransfers = orders.filter(order => order.paymentStatus === 'awaiting_verification');
+  const pendingTransfers = orders.filter(canVerifyBankTransfer);
 
   return (
     <div className="space-y-6">
@@ -196,7 +219,7 @@ export const ManageOrders = () => {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-heading font-extrabold text-lg text-white">Pending Bank Transfers</h2>
-              <p className="text-xs text-amber-300/80">Review submitted transfers and approve or reject payment.</p>
+              <p className="text-xs text-amber-300/80">Customer-reported transfers are not yet verified. Check your bank before approving payment.</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-amber-900 text-amber-100 text-xs font-bold">
               {pendingTransfers.length} awaiting review
@@ -209,7 +232,7 @@ export const ManageOrders = () => {
                 <div className="text-xs">
                   <p className="font-mono font-bold text-ace-pink">{ord.paymentRef}</p>
                   <p className="font-bold text-white mt-1">{ord.guestInfo?.firstName} {ord.guestInfo?.lastName}</p>
-                  <p className="text-neutral-400">{ord.guestInfo?.email} / {format(ord.total)}</p>
+                  <p className="text-neutral-400">{ord.guestInfo?.email} / {formatPaymentAmount(ord.total, ord.currency)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -253,14 +276,14 @@ export const ManageOrders = () => {
                   <p className="font-bold text-white mt-1">{ord.guestInfo?.firstName} {ord.guestInfo?.lastName}</p>
                   <p className="text-[11px] text-neutral-500 truncate">{ord.guestInfo?.email}</p>
                 </div>
-                <strong className="text-white text-sm flex-shrink-0">{format(ord.total)}</strong>
+                <strong className="text-white text-sm flex-shrink-0">{formatPaymentAmount(ord.total, ord.currency)}</strong>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
                   <span className="block text-neutral-500 text-[10px] uppercase font-bold">Payment</span>
                   <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getPaymentBadge(ord.paymentStatus)}`}>
-                    {(ord.paymentStatus || 'pending').replace(/_/g, ' ')}
+                    {paymentStatusLabel(ord)}
                   </span>
                 </div>
                 <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-3">
@@ -276,7 +299,7 @@ export const ManageOrders = () => {
                 <p>{ord.items?.length} style(s)</p>
               </div>
 
-              {ord.paymentStatus === 'awaiting_verification' ? (
+              {canVerifyBankTransfer(ord) ? (
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     disabled={paymentUpdating}
@@ -347,11 +370,11 @@ export const ManageOrders = () => {
                       {ord.items?.length} style(s)
                     </td>
                     <td className="py-4 px-4 font-bold text-white">
-                      {format(ord.total)}
+                      {formatPaymentAmount(ord.total, ord.currency)}
                     </td>
                     <td className="py-4 px-4">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${getPaymentBadge(ord.paymentStatus)}`}>
-                        {(ord.paymentStatus || 'pending').replace(/_/g, ' ')}
+                        {paymentStatusLabel(ord)}
                       </span>
                     </td>
                     <td className="py-4 px-4">
@@ -397,14 +420,14 @@ export const ManageOrders = () => {
             </div>
 
             {/* Quick Status Updater */}
-            {selectedOrder.paymentStatus === 'awaiting_verification' && (
+            {canVerifyBankTransfer(selectedOrder) && (
               <div className="bg-amber-950/30 p-4 rounded-2xl border border-amber-800 space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-white uppercase tracking-wider">
                     Bank Transfer Verification
                   </label>
                   <p className="text-xs text-amber-300/80 mt-1">
-                    Reference {selectedOrder.paymentRef} / {format(selectedOrder.total)}
+                    Reference {selectedOrder.paymentRef} / {formatPaymentAmount(selectedOrder.total, selectedOrder.currency)}
                   </p>
                 </div>
                 {selectedOrder.customerPaymentNote && (
@@ -463,7 +486,7 @@ export const ManageOrders = () => {
                 <p><span className="text-neutral-500">Email:</span> {selectedOrder.guestInfo?.email}</p>
                 <p><span className="text-neutral-500">Phone:</span> {selectedOrder.guestInfo?.phone || 'N/A'}</p>
                 <p><span className="text-neutral-500">Payment Ref:</span> <span className="font-mono text-emerald-400">{selectedOrder.paymentRef}</span></p>
-                <p><span className="text-neutral-500">Payment:</span> <span className="font-bold capitalize">{selectedOrder.paymentStatus?.replace(/_/g, ' ')}</span></p>
+                <p><span className="text-neutral-500">Payment:</span> <span className="font-bold capitalize">{paymentStatusLabel(selectedOrder)}</span></p>
               </div>
 
               <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-1">
@@ -486,10 +509,10 @@ export const ManageOrders = () => {
                       <div className="min-w-0">
                         <p className="font-bold text-white font-heading">{item.name}</p>
                         <p className="text-[11px] text-neutral-400">{item.variant?.label || item.variant?.color}</p>
-                        <p className="text-[11px] text-neutral-500">Qty: {item.qty} × {format(item.price)}</p>
+                        <p className="text-[11px] text-neutral-500">Qty: {item.qty} × {formatPaymentAmount(item.price, selectedOrder.currency)}</p>
                       </div>
                     </div>
-                    <span className="font-bold text-white">{format(item.price * item.qty)}</span>
+                    <span className="font-bold text-white">{formatPaymentAmount(item.price * item.qty, selectedOrder.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -498,7 +521,7 @@ export const ManageOrders = () => {
             {/* Total */}
             <div className="flex justify-between items-baseline pt-2 text-sm border-t border-neutral-800">
               <span className="font-bold text-neutral-400">Order Total</span>
-              <span className="font-black text-xl text-ace-pink font-heading">{format(selectedOrder.total)}</span>
+              <span className="font-black text-xl text-ace-pink font-heading">{formatPaymentAmount(selectedOrder.total, selectedOrder.currency)}</span>
             </div>
           </div>
         </div>

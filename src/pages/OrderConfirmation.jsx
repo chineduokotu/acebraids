@@ -1,31 +1,66 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle2, Copy, Check, Truck, ArrowRight, Printer, MapPin } from 'lucide-react';
+import { CheckCircle2, Copy, Check, Truck, ArrowRight, Printer, MapPin, Clock, XCircle } from 'lucide-react';
 import { fetchOrderById } from '../api/orders';
-import { useCurrency } from '../context/CurrencyContext';
+import { formatPaymentAmount, paymentStatusLabel } from '../utils/paymentDisplay';
 import { Loader } from '../components/common/Loader';
 import { Button } from '../components/common/Button';
 
+export const OrderPaymentSummary = ({ order }) => {
+  const paid = order.paymentStatus === 'paid';
+  const failed = ['failed', 'rejected'].includes(order.paymentStatus);
+  const stripe = order.paymentMethod === 'stripe';
+  return (
+    <div className="text-center mb-10" role="status" aria-live="polite">
+      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border shadow-sm ${paid ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : failed ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+        {paid ? <CheckCircle2 className="w-8 h-8" /> : failed ? <XCircle className="w-8 h-8" /> : <Clock className="w-8 h-8" />}
+      </div>
+      <p className="font-script text-4xl sm:text-5xl text-ace-pink mb-1">Thank you for your order!</p>
+      <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-ace-black mt-2">{paid ? 'Payment confirmed' : failed ? 'Payment needs attention' : 'Awaiting payment confirmation'}</h1>
+      <p className="text-xs sm:text-sm text-neutral-500 mt-2">{paymentStatusLabel(order)}</p>
+      <p className="text-xs sm:text-sm text-neutral-500 mt-3 max-w-xl mx-auto">{paid
+        ? 'Your payment has been confirmed. You can follow your order below.'
+        : failed
+          ? 'This payment was not completed. Please contact us with your order reference for help.'
+          : stripe
+            ? 'We are waiting for Stripe to confirm your payment. Some payment methods take longer. This page updates automatically, and your order will update even if you close it. Please avoid paying again while confirmation is pending.'
+            : 'Your order is awaiting payment verification. A reported bank transfer must be checked by our team before it is confirmed.'}</p>
+    </div>
+  );
+};
+
 export const OrderConfirmation = () => {
   const { id } = useParams();
-  const { format } = useCurrency();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    let timer;
+    setLoading(true);
     const loadOrder = async () => {
+      let shouldPoll = true;
       try {
         const data = await fetchOrderById(id);
+        if (!active) return;
         setOrder(data);
+        setError('');
+        shouldPoll = !['paid', 'failed', 'rejected', 'mock_paid'].includes(data.paymentStatus);
       } catch (err) {
-        console.error('Failed to load order:', err);
+        if (active) setError(err.message || 'Unable to check payment status. Retrying automatically.');
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+          if (shouldPoll) timer = setTimeout(loadOrder, 5000);
+        }
       }
     };
     loadOrder();
-  }, [id]);
+    return () => { active = false; clearTimeout(timer); };
+  }, [id, retry]);
 
   const handleCopyTracking = () => {
     if (order?.trackingCode) {
@@ -46,9 +81,9 @@ export const OrderConfirmation = () => {
   if (!order) {
     return (
       <div className="max-w-md mx-auto py-24 px-4 text-center">
-        <h2 className="font-heading font-extrabold text-2xl text-ace-black mb-2">Order Not Found</h2>
-        <p className="text-sm text-neutral-500 mb-6">Could not retrieve order details.</p>
-        <Link to="/shop"><Button variant="primary">Return to Shop</Button></Link>
+        <h2 className="font-heading font-extrabold text-2xl text-ace-black mb-2">Order Status Unavailable</h2>
+        <p role="alert" className="text-sm text-neutral-500 mb-6">{error || 'Could not retrieve order details.'}</p>
+        <Button variant="primary" onClick={() => setRetry((value) => value + 1)}>Try again</Button>
       </div>
     );
   }
@@ -57,22 +92,8 @@ export const OrderConfirmation = () => {
     <div className="py-12 sm:py-20 bg-white min-h-screen">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Success Header with Great Vibes Script Accent */}
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 border border-emerald-200 shadow-sm animate-bounce">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-
-          <p className="font-script text-4xl sm:text-5xl text-ace-pink mb-1">
-            Thank you for your order!
-          </p>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-ace-black mt-2">
-            We're preparing your luxury crown
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-500 mt-2">
-            A confirmation receipt has been sent to <strong className="text-ace-black">{order.guestInfo?.email}</strong>.
-          </p>
-        </div>
+        <OrderPaymentSummary order={order} />
+        {error && <p role="alert" className="mb-6 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">{error} Payment updates will retry automatically.</p>}
 
         {/* Tracking Code Highlight Box */}
         <div className="bg-ace-black text-white p-6 rounded-3xl shadow-xl border border-neutral-800 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -138,7 +159,7 @@ export const OrderConfirmation = () => {
                     </div>
                   </div>
                   <span className="font-heading font-bold text-xs sm:text-sm text-ace-black whitespace-nowrap">
-                    {format(item.price * item.qty)}
+                    {formatPaymentAmount(item.price * item.qty, order.currency)}
                   </span>
                 </div>
               ))}
@@ -149,20 +170,20 @@ export const OrderConfirmation = () => {
           <div className="pt-4 border-t border-ace-border/60 space-y-2 text-xs text-neutral-600">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="font-bold text-ace-black">{format(order.subtotal)}</span>
+              <span className="font-bold text-ace-black">{formatPaymentAmount(order.subtotal, order.currency)}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping Fee</span>
               <span className="font-bold text-ace-black">
-                {order.shippingFee === 0 ? <span className="text-emerald-600">FREE</span> : format(order.shippingFee)}
+                {order.shippingFee === 0 ? <span className="text-emerald-600">FREE</span> : formatPaymentAmount(order.shippingFee, order.currency)}
               </span>
             </div>
             <div className="flex justify-between text-base pt-2 border-t border-ace-border/60">
               <span className="font-heading font-extrabold text-ace-black">
-                {order.paymentStatus === 'paid' || order.paymentStatus === 'mock_paid' ? 'Total Paid' : 'Order Total'}
+                {order.paymentStatus === 'paid' ? 'Total Paid' : 'Order Total'}
               </span>
               <span className="font-heading font-black text-xl text-ace-pink">
-                {format(order.total)}
+                {formatPaymentAmount(order.total, order.currency)}
               </span>
             </div>
           </div>
@@ -203,7 +224,7 @@ export const OrderConfirmation = () => {
               onClick={handlePrint}
             >
               <Printer className="w-4 h-4 mr-1.5" />
-              <span>Print Receipt</span>
+              <span>{order.paymentStatus === 'paid' ? 'Print Receipt' : 'Print Order'}</span>
             </Button>
             <Link to="/shop" className="flex-1">
               <Button variant="primary" size="md" className="w-full text-xs font-bold uppercase tracking-wider">

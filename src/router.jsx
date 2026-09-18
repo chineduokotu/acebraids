@@ -16,6 +16,7 @@ import { Contact } from './pages/Contact';
 // Admin Pages
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminSettings } from './pages/admin/AdminSettings';
+import { AdminNotifications } from './pages/admin/AdminNotifications';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { Dashboard } from './pages/admin/Dashboard';
 import { ManageProducts } from './pages/admin/ManageProducts';
@@ -66,6 +67,7 @@ export const router = createBrowserRouter([
       { path: 'products', element: <ManageProducts /> },
       { path: 'categories', element: <ManageCategories /> },
       { path: 'orders', element: <ManageOrders /> },
+      { path: 'notifications', element: <AdminNotifications /> },
       { path: 'customer-looks', element: <ManageCustomerLooks /> },
       { path: 'settings', element: <AdminSettings /> },
     ],

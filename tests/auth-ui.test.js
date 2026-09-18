@@ -11,7 +11,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 });
 const vite = await createServer({
   configFile: false,
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, hmr: false },
   optimizeDeps: { noDiscovery: true, include: [] },
   appType: 'custom',
 });
@@ -81,4 +81,11 @@ test('rate-limit errors retain retry guidance and never include the password req
     assert.equal(JSON.stringify(error).includes('private password'), false);
     return true;
   });
+});
+
+test('rate-limit guidance works when browser CORS hides the Retry-After header', async () => {
+  axiosClient.defaults.adapter = async (config) => {
+    throw { config, response: { status: 429, data: { message: 'Too many attempts', retryAfter: 120 }, headers: {} } };
+  };
+  await assert.rejects(changeAdminPassword({}), (error) => error.retryAfter === 120);
 });

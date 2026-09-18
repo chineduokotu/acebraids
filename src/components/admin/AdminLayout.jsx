@@ -1,11 +1,13 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Layers, ShoppingCart, Film, LogOut, Store, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, Layers, ShoppingCart, Film, LogOut, Store, Settings, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { AdminNotificationsProvider, useAdminNotifications } from '../../context/AdminNotificationsContext';
 import { ScrollToTop } from '../common/ScrollToTop';
 
-export const AdminLayout = () => {
-  const { logout, user } = useAuth();
+const AdminLayoutContent = () => {
+  const { logout } = useAuth();
+  const { unreadCount, connection } = useAdminNotifications();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -18,6 +20,7 @@ export const AdminLayout = () => {
     { name: 'Products', path: '/admin/products', icon: Package },
     { name: 'Categories', path: '/admin/categories', icon: Layers },
     { name: 'Orders', path: '/admin/orders', icon: ShoppingCart },
+    { name: 'Notifications', path: '/admin/notifications', icon: Bell },
     { name: 'Customer Looks', path: '/admin/customer-looks', icon: Film },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
@@ -76,6 +79,7 @@ export const AdminLayout = () => {
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.name}</span>
+                  {item.name === 'Notifications' && unreadCount > 0 && <span aria-label={`${unreadCount} unread notifications`} className="rounded-full bg-white text-pink-700 px-1.5 py-0.5 text-[10px] font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>}
                 </NavLink>
               );
             })}
@@ -104,8 +108,17 @@ export const AdminLayout = () => {
 
       {/* Main Admin Area */}
       <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-10 overflow-x-hidden overflow-y-auto bg-neutral-950">
+        <div className="flex justify-end items-center gap-3 mb-5">
+          <span role="status" className="text-[11px] text-neutral-400">{connection === 'live' ? 'Payment updates connected' : connection === 'connecting' ? 'Connecting payment updates…' : 'Reconnecting payment updates…'}</span>
+          <NavLink to="/admin/notifications" aria-label={`Payment notifications, ${unreadCount} unread`} className="relative inline-flex w-10 h-10 items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900 text-ace-pink hover:bg-neutral-800">
+            <Bell className="w-5 h-5" aria-hidden="true" />
+            {unreadCount > 0 && <span aria-hidden="true" className="absolute -top-1 -right-1 rounded-full bg-ace-pink text-white px-1.5 text-[10px] font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </NavLink>
+        </div>
         <Outlet />
       </main>
     </div>
   );
 };
+
+export const AdminLayout = () => <AdminNotificationsProvider><AdminLayoutContent /></AdminNotificationsProvider>;

@@ -6,7 +6,7 @@ const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 const apiOrigin = configuredApiUrl || (
   import.meta.env.DEV
     ? 'http://localhost:5000'
-    : 'https://acebraids-api.onrender.com'
+    : '' // Same-origin API proxy keeps the admin cookie available to SSE.
 );
 const apiBaseUrl = `${apiOrigin.replace(/\/$/, '')}/api`;
 
@@ -30,7 +30,7 @@ axiosClient.interceptors.response.use(
       message: error.response?.data?.message || error.message || 'Something went wrong',
       status: error.response?.status,
       code: error.response?.data?.code,
-      retryAfter: Number(error.response?.headers?.['retry-after']) || 0,
+      retryAfter: Number(error.response?.headers?.['retry-after']) || Number(error.response?.data?.retryAfter) || 0,
     };
     return Promise.reject(customError);
   }

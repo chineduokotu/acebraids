@@ -4,12 +4,14 @@ import { ShoppingCart, Package, DollarSign, Film, ArrowUpRight, Clock, CheckCirc
 import { fetchAdminOrders, fetchPendingTransfers } from '../../api/orders';
 import { fetchProducts } from '../../api/products';
 import { fetchAdminCustomerLooks } from '../../api/customerLooks';
-import { useCurrency } from '../../context/CurrencyContext';
+import { useAdminNotifications } from '../../context/AdminNotificationsContext';
+import { formatPaymentAmount } from '../../utils/paymentDisplay';
 import { Loader } from '../../components/common/Loader';
 
 export const Dashboard = () => {
   const [stats, setStats] = useState({
     totalRevenue: 0,
+    revenueByCurrency: {},
     totalOrders: 0,
     totalProducts: 0,
     totalLooks: 0,
@@ -17,7 +19,7 @@ export const Dashboard = () => {
   const [recentOrders, setRecentOrders] = useState([]);
   const [pendingTransfers, setPendingTransfers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { format } = useCurrency();
+  const { paymentRevision } = useAdminNotifications();
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -33,6 +35,7 @@ export const Dashboard = () => {
         setPendingTransfers(Array.isArray(pendingData) ? pendingData : []);
         setStats({
           totalRevenue: ordersData.totalRevenue || 0,
+          revenueByCurrency: ordersData.revenueByCurrency || { GBP: ordersData.totalRevenue || 0 },
           totalOrders: ordersData.total || 0,
           totalProducts: prodData.total || 0,
           totalLooks: looksData?.length || 0,
@@ -45,14 +48,14 @@ export const Dashboard = () => {
     };
 
     loadDashboardData();
-  }, []);
+  }, [paymentRevision]);
 
   if (loading) {
     return <div className="py-20"><Loader text="Loading admin analytics..." /></div>;
   }
 
   const statCards = [
-    { title: 'Verified Revenue', value: format(stats.totalRevenue), icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-950/40' },
+    { title: 'Verified Revenue', value: Object.entries(stats.revenueByCurrency).map(([currency, total]) => formatPaymentAmount(total, currency)).join(' / ') || formatPaymentAmount(0), icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-950/40' },
     { title: 'Total Orders', value: stats.totalOrders, icon: ShoppingCart, color: 'text-ace-pink', bg: 'bg-pink-950/40' },
     { title: 'Live Products', value: stats.totalProducts, icon: Package, color: 'text-sky-400', bg: 'bg-sky-950/40' },
     { title: 'Customer Looks', value: stats.totalLooks, icon: Film, color: 'text-amber-400', bg: 'bg-amber-950/40' },
@@ -122,7 +125,7 @@ export const Dashboard = () => {
                     <p className="font-semibold text-white mt-1">{ord.guestInfo?.firstName} {ord.guestInfo?.lastName}</p>
                     <p className="text-[11px] text-neutral-500 truncate">{ord.guestInfo?.email}</p>
                   </div>
-                  <strong className="text-white flex-shrink-0">{format(ord.total)}</strong>
+                  <strong className="text-white flex-shrink-0">{formatPaymentAmount(ord.total, ord.currency)}</strong>
                 </div>
                 <p className="text-neutral-500 mt-2">
                   Submitted: {ord.paymentSubmittedAt ? new Date(ord.paymentSubmittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
@@ -149,7 +152,7 @@ export const Dashboard = () => {
                       <p className="font-semibold text-white">{ord.guestInfo?.firstName} {ord.guestInfo?.lastName}</p>
                       <p className="text-[11px] text-neutral-500">{ord.guestInfo?.email}</p>
                     </td>
-                    <td className="py-3.5 font-bold text-white">{format(ord.total)}</td>
+                    <td className="py-3.5 font-bold text-white">{formatPaymentAmount(ord.total, ord.currency)}</td>
                     <td className="py-3.5 text-neutral-500">
                       {ord.paymentSubmittedAt ? new Date(ord.paymentSubmittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                     </td>
@@ -189,7 +192,7 @@ export const Dashboard = () => {
                     <p className="font-semibold text-white mt-1">{ord.guestInfo?.firstName} {ord.guestInfo?.lastName}</p>
                     <p className="text-[11px] text-neutral-500 truncate">{ord.guestInfo?.email}</p>
                   </div>
-                  <strong className="text-white flex-shrink-0">{format(ord.total)}</strong>
+                  <strong className="text-white flex-shrink-0">{formatPaymentAmount(ord.total, ord.currency)}</strong>
                 </div>
                 <div className="flex items-center justify-between gap-3 mt-3">
                   <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
@@ -226,7 +229,7 @@ export const Dashboard = () => {
                       <p className="text-[11px] text-neutral-500">{ord.guestInfo?.email}</p>
                     </td>
                     <td className="py-3.5">{ord.items?.length} style(s)</td>
-                    <td className="py-3.5 font-bold text-white">{format(ord.total)}</td>
+                    <td className="py-3.5 font-bold text-white">{formatPaymentAmount(ord.total, ord.currency)}</td>
                     <td className="py-3.5">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                         ord.orderStatus === 'delivered' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
