@@ -72,8 +72,8 @@ export const addCartItem = (cart, product, selection, qty = 1) => {
 
   const item = {
     variantKey: getVariantKey(product, variant),
-    product: product._id,
-    variantId: variant?._id,
+    product: String(product._id),
+    variantId: variant?._id ? String(variant._id) : undefined,
     name: product.name,
     slug: product.slug,
     image: product.images?.[0]?.url || '/uploads/IMG_4065.PNG',

@@ -97,8 +97,8 @@ export const Checkout = () => {
       },
     },
     items: cart.map(item => ({
-      product: item.product,
-      variantId: item.variantId || item.variant?._id,
+      product: String(item.product),
+      variantId: item.variantId || item.variant?._id ? String(item.variantId || item.variant?._id) : undefined,
       name: item.name,
       slug: item.slug,
       image: item.image,
