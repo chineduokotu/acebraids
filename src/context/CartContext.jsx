@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { fetchProductBySlug } from '../api/products';
+import { addCartItem, getRemainingStock, refreshCartStock, updateCartQuantity } from '../utils/inventory';
 
 const CartContext = createContext();
 
@@ -6,14 +8,44 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem('ace_cart');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter((item) => item?.product && Number.isSafeInteger(item.qty) && item.qty > 0) : [];
     } catch {
       return [];
     }
   });
+  const cartRef = useRef(cart);
+  const toastTimer = useRef(null);
+
+  const commitCart = (items) => {
+    cartRef.current = items;
+    setCart(items);
+  };
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      const slugs = [...new Set(cartRef.current.map((item) => item.slug).filter(Boolean))];
+      await Promise.all(slugs.map(async (slug) => {
+        try {
+          const product = await fetchProductBySlug(slug);
+          if (active && product?._id) commitCart(refreshCartStock(cartRef.current, product));
+        } catch {
+          // Checkout still checks current server stock if the catalogue is unavailable.
+        }
+      }));
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refresh);
+      clearTimeout(toastTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -24,75 +56,33 @@ export const CartProvider = ({ children }) => {
   }, [cart]);
 
   const showToast = (message) => {
+    clearTimeout(toastTimer.current);
     setToastMessage(message);
-    setTimeout(() => {
+    toastTimer.current = setTimeout(() => {
       setToastMessage(null);
     }, 3200);
   };
 
   const addToCart = (product, variant = {}, qty = 1, openDrawer = true) => {
-    const unitPrice = variant.priceOverride || product.discountPrice || product.price;
-    const variantKey = `${product._id}-${variant.color || ''}-${variant.length || ''}-${variant.capSize || ''}`;
-    
-    // Choose thumbnail
-    const image = product.images?.[0]?.url || '/uploads/IMG_4065.PNG';
-
-    setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex(item => item.variantKey === variantKey);
-
-      if (existingIndex > -1) {
-        const updated = [...prevCart];
-        updated[existingIndex].qty += qty;
-        return updated;
-      } else {
-        return [
-          ...prevCart,
-          {
-            variantKey,
-            product: product._id,
-            name: product.name,
-            slug: product.slug,
-            image,
-            price: unitPrice,
-            regularPrice: product.price,
-            variant: {
-              label: variant.label || `${variant.color || ''} ${variant.length ? `/ ${variant.length}` : ''}`,
-              color: variant.color || 'Natural Black',
-              length: variant.length || 'Standard',
-              capSize: variant.capSize || 'Standard',
-              sku: variant.sku || '',
-            },
-            qty,
-          }
-        ];
-      }
-    });
-
-    showToast(`Added "${product.name}" to your bag!`);
-
-    if (openDrawer) {
-      setIsCartOpen(true);
-    }
+    const result = addCartItem(cartRef.current, product, variant, qty);
+    commitCart(result.cart);
+    showToast(result.message);
+    if (result.added && openDrawer) setIsCartOpen(true);
+    return result.added;
   };
 
   const removeFromCart = (variantKey) => {
-    setCart(prev => prev.filter(item => item.variantKey !== variantKey));
+    commitCart(cartRef.current.filter(item => item.variantKey !== variantKey));
   };
 
   const updateQuantity = (variantKey, newQty) => {
-    if (newQty <= 0) {
-      removeFromCart(variantKey);
-      return;
-    }
-    setCart(prev =>
-      prev.map(item =>
-        item.variantKey === variantKey ? { ...item, qty: newQty } : item
-      )
-    );
+    const result = updateCartQuantity(cartRef.current, variantKey, newQty);
+    commitCart(result.cart);
+    if (result.message) showToast(result.message);
   };
 
   const clearCart = () => {
-    setCart([]);
+    commitCart([]);
   };
 
   const totalItemsCount = cart.reduce((acc, item) => acc + item.qty, 0);
@@ -112,6 +102,7 @@ export const CartProvider = ({ children }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        getAvailableQuantity: (product, variant) => getRemainingStock(cart, product, variant),
         clearCart,
         totalItemsCount,
         subtotal,

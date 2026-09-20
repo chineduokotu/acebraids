@@ -1,26 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PriceTag } from '../common/PriceTag';
 import { Button } from '../common/Button';
 import { VariantSelector } from './VariantSelector';
 import { useCart } from '../../context/CartContext';
+import { getAvailableStock, getInitialVariant, getLowStockThreshold, resolveVariant } from '../../utils/inventory';
 
 export const QuickViewModal = ({ product, isOpen, onClose }) => {
-  const { addToCart } = useCart();
+  const { addToCart, getAvailableQuantity } = useCart();
   const [selectedVariant, setSelectedVariant] = useState(() => {
-    return product?.variants?.[0] || {};
+    return getInitialVariant(product);
   });
   const [quantity, setQuantity] = useState(1);
 
+  const currentVariant = resolveVariant(product, selectedVariant) || getInitialVariant(product);
+  const stock = getAvailableStock(product, currentVariant);
+  const availableQuantity = getAvailableQuantity(product, currentVariant);
+  const threshold = getLowStockThreshold(product, currentVariant);
+
+  useEffect(() => {
+    setSelectedVariant(getInitialVariant(product));
+    setQuantity(1);
+  }, [product?._id, isOpen]);
+
+  useEffect(() => {
+    setQuantity((current) => Math.max(1, Math.min(current, availableQuantity)));
+  }, [availableQuantity]);
+
   if (!isOpen || !product) return null;
 
-  const currentVariant = selectedVariant?.label ? selectedVariant : (product.variants?.[0] || {});
   const mainImage = product.images?.[0]?.url || '/uploads/IMG_4065.PNG';
 
   const handleAdd = () => {
-    addToCart(product, currentVariant, quantity);
-    onClose();
+    if (addToCart(product, currentVariant, quantity)) onClose();
   };
 
   return (
@@ -60,8 +73,8 @@ export const QuickViewModal = ({ product, isOpen, onClose }) => {
             </h3>
 
             <PriceTag
-              price={product.price}
-              discountPrice={product.discountPrice}
+              price={currentVariant?.priceOverride ?? product.price}
+              discountPrice={currentVariant?.priceOverride != null ? undefined : product.discountPrice}
               size="lg"
             />
 
@@ -73,20 +86,34 @@ export const QuickViewModal = ({ product, isOpen, onClose }) => {
             <VariantSelector
               variants={product.variants || []}
               selectedVariant={currentVariant}
-              onSelectVariant={setSelectedVariant}
+              onSelectVariant={(variant) => { setSelectedVariant(variant); setQuantity(1); }}
+              lowStockThreshold={product.lowStockThreshold}
+              isSoldOut={product.isSoldOut}
             />
           </div>
 
           <div className="pt-6 space-y-3 border-t border-ace-border/60 mt-4">
+            <div role="status" aria-live="polite" className="text-xs font-semibold">
+              {stock === 0 ? <p className="text-rose-700">Out of Stock</p> : stock <= threshold ? <p className="text-amber-700">Only {stock} left in stock - order soon</p> : null}
+              {stock > 0 && availableQuantity === 0 && <p className="text-amber-700">All available stock is already in your bag.</p>}
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span>Quantity</span>
+              <div className="flex items-center gap-4 border border-ace-border px-2 py-1">
+                <button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} className="px-2 disabled:opacity-30" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+                <span>{quantity}</span>
+                <button type="button" aria-label="Increase quantity" disabled={quantity >= availableQuantity} className="px-2 disabled:opacity-30" onClick={() => setQuantity(Math.min(availableQuantity, quantity + 1))}>+</button>
+              </div>
+            </div>
             <Button
               variant="primary"
               size="lg"
               className="w-full text-xs font-bold uppercase tracking-wider"
               onClick={handleAdd}
-              disabled={currentVariant?.stock === 0}
+              disabled={availableQuantity === 0}
             >
               <ShoppingBag className="w-4 h-4 mr-2" />
-              {currentVariant?.stock === 0 ? 'Sold Out' : 'Add to Bag'}
+              {stock === 0 ? 'Out of Stock' : availableQuantity === 0 ? 'All Stock in Bag' : 'Add to Bag'}
             </Button>
 
             <Link

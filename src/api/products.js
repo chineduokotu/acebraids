@@ -25,6 +25,11 @@ export const updateProduct = async (id, productData) => {
   return response.data;
 };
 
+export const updateProductStock = async (id, stockData) => {
+  const response = await axiosClient.patch(`/products/${id}/stock`, stockData);
+  return response.data;
+};
+
 export const deleteProduct = async (id) => {
   const response = await axiosClient.delete(`/products/${id}`);
   return response.data;

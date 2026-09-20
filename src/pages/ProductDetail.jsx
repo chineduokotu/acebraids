@@ -10,10 +10,11 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { ProductCard } from '../components/product/ProductCard';
+import { getAvailableStock, getInitialVariant, getLowStockThreshold } from '../utils/inventory';
 
 export const ProductDetail = () => {
   const { slug } = useParams();
-  const { addToCart } = useCart();
+  const { addToCart, getAvailableQuantity } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { format } = useCurrency();
 
@@ -35,7 +36,8 @@ export const ProductDetail = () => {
         const prodData = await fetchProductBySlug(slug);
         if (prodData && prodData.name) {
           setProduct(prodData);
-          setSelectedVariant(prodData.variants?.[0] || null);
+          setSelectedVariant(getInitialVariant(prodData));
+          setQuantity(1);
 
           // Load related items
           if (prodData.category?._id) {
@@ -55,6 +57,14 @@ export const ProductDetail = () => {
     loadProduct();
   }, [slug]);
 
+  const activeVariant = selectedVariant || getInitialVariant(product);
+  const availableStock = getAvailableStock(product, activeVariant);
+  const availableQuantity = getAvailableQuantity(product, activeVariant);
+  const lowStockThreshold = getLowStockThreshold(product, activeVariant);
+  useEffect(() => {
+    setQuantity((current) => Math.max(1, Math.min(current, availableQuantity)));
+  }, [availableQuantity, activeVariant?._id]);
+
   if (loading) {
     return <div className="py-24"><Loader text="Loading..." /></div>;
   }
@@ -72,9 +82,8 @@ export const ProductDetail = () => {
   }
 
   const isSaved = isInWishlist(product._id);
-  const activeVariant = selectedVariant || product.variants?.[0] || {};
-  const isOutOfStock = activeVariant.stock === 0;
-  const effectivePrice = product.discountPrice || product.price;
+  const isOutOfStock = availableStock === 0;
+  const effectivePrice = activeVariant?.priceOverride ?? product.discountPrice ?? product.price;
 
   const handleAddToCart = () => {
     addToCart(product, activeVariant, quantity, true);
@@ -152,13 +161,19 @@ export const ProductDetail = () => {
                 <VariantSelector
                   variants={product.variants || []}
                   selectedVariant={activeVariant}
-                  onSelectVariant={setSelectedVariant}
+                  onSelectVariant={(variant) => { setSelectedVariant(variant); setQuantity(1); }}
+                  lowStockThreshold={product.lowStockThreshold}
+                  isSoldOut={product.isSoldOut}
                 />
               </div>
             )}
 
             {/* Quantity & Add to Cart */}
             <div className="pt-4 space-y-3">
+              <div role="status" aria-live="polite" className="text-sm font-semibold">
+                {isOutOfStock ? <p className="text-rose-700">Out of Stock</p> : availableStock <= lowStockThreshold ? <p className="text-amber-700">Only {availableStock} left in stock - order soon</p> : null}
+                {!isOutOfStock && availableQuantity === 0 && <p className="text-amber-700">All available stock is already in your bag.</p>}
+              </div>
               <div className="flex items-center gap-3">
                 {/* Quantity Stepper */}
                 <div className="flex items-center border border-neutral-200 bg-white h-12 px-3">
@@ -167,14 +182,17 @@ export const ProductDetail = () => {
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="text-neutral-500 hover:text-neutral-900 transition px-2 text-base font-semibold"
                     disabled={quantity <= 1}
+                    aria-label="Decrease quantity"
                   >
                     -
                   </button>
                   <span className="px-3 text-sm font-semibold text-neutral-900 min-w-[24px] text-center">{quantity}</span>
                   <button
                     type="button"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="text-neutral-500 hover:text-neutral-900 transition px-2 text-base font-semibold"
+                    onClick={() => setQuantity(Math.min(availableQuantity, quantity + 1))}
+                    disabled={quantity >= availableQuantity}
+                    aria-label="Increase quantity"
+                    className="text-neutral-500 hover:text-neutral-900 transition px-2 text-base font-semibold disabled:opacity-30"
                   >
                     +
                   </button>
@@ -184,11 +202,11 @@ export const ProductDetail = () => {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={isOutOfStock}
+                  disabled={availableQuantity === 0}
                   className="flex-1 h-12 bg-neutral-900 hover:bg-ace-pink text-white text-xs sm:text-sm font-semibold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 active:scale-[0.99] disabled:bg-neutral-300"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  {isOutOfStock ? 'Sold Out' : 'Add to Bag'}
+                  {isOutOfStock ? 'Out of Stock' : availableQuantity === 0 ? 'All Stock in Bag' : 'Add to Bag'}
                 </button>
 
                 {/* Wishlist Button */}

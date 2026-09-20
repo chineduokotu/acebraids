@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { getInitialVariant, getTotalStock } from '../../utils/inventory';
 
 export const ProductCard = ({ product, onQuickView }) => {
   const { addToCart } = useCart();
@@ -13,18 +14,20 @@ export const ProductCard = ({ product, onQuickView }) => {
   const mainVideo = product.videos?.[0]?.url;
   const mainImage = product.images?.[0]?.url || '/uploads/IMG_6241.PNG';
   const effectivePrice = product.discountPrice || product.price;
+  const isOutOfStock = getTotalStock(product) === 0;
 
   const handleQuickAdd = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
     if (product.variants && product.variants.length > 1) {
       if (onQuickView) {
         onQuickView(product);
       } else {
-        addToCart(product, product.variants[0], 1);
+        addToCart(product, getInitialVariant(product), 1);
       }
     } else {
-      addToCart(product, product.variants?.[0] || {}, 1);
+      addToCart(product, getInitialVariant(product), 1);
     }
   };
 
@@ -54,13 +57,16 @@ export const ProductCard = ({ product, onQuickView }) => {
           )}
         </Link>
 
+        {isOutOfStock && <span className="absolute top-3 left-3 bg-white px-2.5 py-1 text-xs font-semibold text-rose-700">Out of Stock</span>}
+
         {/* Floating Dark Charcoal Basket Button (matches screenshot exactly) */}
         <button
           type="button"
           onClick={handleQuickAdd}
-          className="absolute bottom-2.5 right-2.5 z-10 w-9 h-9 bg-[#242424]/90 hover:bg-ace-pink text-white rounded-md flex items-center justify-center shadow-md transition-colors active:scale-95"
-          aria-label="Add to bag"
-          title="Add to shopping bag"
+          disabled={isOutOfStock}
+          className="absolute bottom-2.5 right-2.5 z-10 w-9 h-9 bg-[#242424]/90 hover:bg-ace-pink text-white rounded-md flex items-center justify-center shadow-md transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label={isOutOfStock ? 'Out of Stock' : 'Add to bag'}
+          title={isOutOfStock ? 'Out of Stock' : 'Add to shopping bag'}
         >
           <ShoppingBag className="w-4 h-4 stroke-[1.8]" />
         </button>

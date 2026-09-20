@@ -11,6 +11,7 @@ import {
 } from '../api/payments';
 import { validateEmail } from '../utils/validators';
 import { Button } from '../components/common/Button';
+import { getCheckoutError } from '../utils/inventory';
 
 export const Checkout = () => {
   const { cart, subtotal, clearCart } = useCart();
@@ -97,6 +98,7 @@ export const Checkout = () => {
     },
     items: cart.map(item => ({
       product: item.product,
+      variantId: item.variantId || item.variant?._id,
       name: item.name,
       slug: item.slug,
       image: item.image,
@@ -136,7 +138,7 @@ export const Checkout = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
-      setErrorMsg(err.message || `Unable to create your ${paymentMethod === 'stripe' ? 'Stripe' : 'bank transfer'} order. Please try again.`);
+      setErrorMsg(getCheckoutError(err, `Unable to create your ${paymentMethod === 'stripe' ? 'Stripe' : 'bank transfer'} order. Please try again.`));
     } finally {
       setProcessing(false);
     }
@@ -152,7 +154,7 @@ export const Checkout = () => {
       clearCart();
       navigate(`/payment-pending/${response.order._id}`);
     } catch (err) {
-      setErrorMsg(err.message || 'Unable to confirm your transfer right now.');
+      setErrorMsg(getCheckoutError(err, 'Unable to confirm your transfer right now.'));
     } finally {
       setConfirming(false);
     }
@@ -350,7 +352,7 @@ export const Checkout = () => {
                 )}
 
                 {errorMsg && (
-                  <div className="mt-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <div role="alert" aria-live="assertive" className="mt-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>{errorMsg}</span>
                   </div>

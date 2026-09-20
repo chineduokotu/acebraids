@@ -43,11 +43,17 @@ export const CartItem = ({ item, onUpdateQty, onRemove }) => {
 
         {/* Variant summary tags */}
         <div className="text-xs text-neutral-500 mt-1 space-y-0.5">
+          {item.variant?.label && <p className="font-medium text-ace-soft">{item.variant.label}</p>}
           {item.variant?.color && <p className="truncate">Color: <span className="font-medium text-ace-soft">{item.variant.color}</span></p>}
+          {item.variant?.length && <p>Length: {item.variant.length}</p>}
           {item.variant?.capSize && item.variant.capSize !== 'N/A' && item.variant.capSize !== 'Standard' && (
             <p>Cap: <span className="font-medium text-ace-soft">{item.variant.capSize}</span></p>
           )}
         </div>
+
+        {item.stock != null && item.qty > item.stock && (
+          <p role="alert" className="text-xs text-rose-700 mt-2">{item.stock === 0 ? 'Out of Stock. Remove this item to continue.' : `Only ${item.stock} available. Please reduce your quantity.`}</p>
+        )}
 
         {/* Price & Quantity Stepper */}
         <div className="flex items-center justify-between mt-3">
@@ -65,7 +71,9 @@ export const CartItem = ({ item, onUpdateQty, onRemove }) => {
             </span>
             <button
               onClick={() => onUpdateQty(item.variantKey, item.qty + 1)}
-              className="p-1 text-neutral-500 hover:text-ace-black transition"
+              className="p-1 text-neutral-500 hover:text-ace-black transition disabled:opacity-30 disabled:cursor-not-allowed"
+              disabled={item.stock == null || item.qty >= item.stock}
+              title={item.stock == null ? 'Checking available stock' : item.qty >= item.stock ? 'Maximum available stock reached' : 'Increase quantity'}
               aria-label="Increase quantity"
             >
               <Plus className="w-3 h-3" />

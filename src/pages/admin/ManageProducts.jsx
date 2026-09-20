@@ -1,11 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, X, Check, Search, AlertCircle, Image as ImageIcon, Video } from 'lucide-react';
-import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../../api/products';
+import { Plus, Edit2, Trash2, X, Search, AlertCircle, Package } from 'lucide-react';
+import { fetchProducts, createProduct, updateProduct, updateProductStock, deleteProduct } from '../../api/products';
 import { fetchCategories } from '../../api/categories';
 import { MediaUploader } from '../../components/admin/MediaUploader';
 import { Button } from '../../components/common/Button';
 import { Loader } from '../../components/common/Loader';
 import { useCurrency } from '../../context/CurrencyContext';
+
+const stockStatus = (stock, threshold = 5, isSoldOut = false) => {
+  if (isSoldOut || Number(stock) <= 0) return 'out_of_stock';
+  return Number(stock) <= Number(threshold) ? 'low_stock' : 'in_stock';
+};
+
+const productInventory = (product) => {
+  const total = product.variants?.length
+    ? product.variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0)
+    : Number(product.stock || 0);
+  return { total, status: stockStatus(total, product.lowStockThreshold ?? 5, product.isSoldOut) };
+};
+
+const StockBadge = ({ status }) => {
+  const badges = {
+    in_stock: ['In Stock', 'bg-emerald-950 text-emerald-300 border-emerald-800'],
+    low_stock: ['Low Stock', 'bg-amber-950 text-amber-300 border-amber-800'],
+    out_of_stock: ['Out of Stock', 'bg-rose-950 text-rose-300 border-rose-800'],
+  };
+  const [label, colors] = badges[status];
+  return <span className={`inline-block border px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${colors}`}>{label}</span>;
+};
+
+const inventoryNumber = (value, label) => {
+  const number = Number(value);
+  if (String(value).trim() === '' || !Number.isSafeInteger(number) || number < 0) {
+    throw new Error(`${label} must be a whole number of zero or more.`);
+  }
+  return number;
+};
 
 export const ManageProducts = () => {
   const [products, setProducts] = useState([]);
@@ -16,6 +46,12 @@ export const ManageProducts = () => {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [formError, setFormError] = useState('');
+  const [stockFilter, setStockFilter] = useState('all');
+  const [stockProduct, setStockProduct] = useState(null);
+  const [stockForm, setStockForm] = useState({ variantId: '', stock: 0, lowStockThreshold: 5, notes: '' });
+  const [stockError, setStockError] = useState('');
+  const [stockSaving, setStockSaving] = useState(false);
 
   const { format } = useCurrency();
 
@@ -30,11 +66,11 @@ export const ManageProducts = () => {
     isFeatured: false,
     isNewArrival: false,
     isSoldOut: false,
+    stock: 0,
+    lowStockThreshold: 5,
     images: [{ url: '', alt: '' }],
     videos: [{ url: '', posterUrl: '' }],
-    variants: [
-      { label: '1B Natural Black / 30 Inch', color: '1B Natural Black', length: '30 Inch', capSize: 'Medium', stock: 15, sku: '' }
-    ]
+    variants: [],
   };
   const [formData, setFormData] = useState(initialForm);
 
@@ -45,10 +81,14 @@ export const ManageProducts = () => {
         fetchProducts({ limit: 100 }),
         fetchCategories(),
       ]);
-      setProducts(prodData.products || []);
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, (prodData.pages || 1) - 1) }, (_, index) => fetchProducts({ limit: 100, page: index + 2 }))
+      );
+      setProducts([...(prodData.products || []), ...remainingPages.flatMap(page => page.products || [])]);
       setCategories(catData || []);
     } catch (err) {
       console.error('Failed to load products:', err);
+      setFeedback({ type: 'error', text: err.message || 'Failed to load products' });
     } finally {
       setLoading(false);
     }
@@ -59,6 +99,7 @@ export const ManageProducts = () => {
   }, []);
 
   const openCreateModal = () => {
+    setFormError('');
     setEditingProduct(null);
     setFormData({
       ...initialForm,
@@ -68,22 +109,23 @@ export const ManageProducts = () => {
   };
 
   const openEditModal = (prod) => {
+    setFormError('');
     setEditingProduct(prod);
     setFormData({
       name: prod.name || '',
       slug: prod.slug || '',
       category: prod.category?._id || prod.category || '',
       description: prod.description || '',
-      price: prod.price || '',
-      discountPrice: prod.discountPrice || '',
+      price: prod.price ?? '',
+      discountPrice: prod.discountPrice ?? '',
       isFeatured: Boolean(prod.isFeatured),
       isNewArrival: Boolean(prod.isNewArrival),
       isSoldOut: Boolean(prod.isSoldOut),
+      stock: prod.stock ?? 0,
+      lowStockThreshold: prod.lowStockThreshold ?? 5,
       images: prod.images?.length > 0 ? prod.images : [{ url: '', alt: '' }],
       videos: prod.videos?.length > 0 ? prod.videos : [{ url: '', posterUrl: '' }],
-      variants: prod.variants?.length > 0 ? prod.variants : [
-        { label: '1B Natural Black / 30 Inch', color: '1B Natural Black', length: '30 Inch', capSize: 'Medium', stock: 15, sku: '' }
-      ],
+      variants: (prod.variants || []).map(variant => ({ ...variant, stock: variant.stock ?? 0, lowStockThreshold: variant.lowStockThreshold ?? prod.lowStockThreshold ?? 5 })),
     });
     setIsModalOpen(true);
   };
@@ -104,18 +146,32 @@ export const ManageProducts = () => {
     e.preventDefault();
     setSaving(true);
     setFeedback(null);
+    setFormError('');
 
     try {
       const cleanData = {
         ...formData,
         price: Number(formData.price),
         discountPrice: formData.discountPrice ? Number(formData.discountPrice) : undefined,
+        stock: inventoryNumber(formData.stock, 'Product stock'),
+        lowStockThreshold: inventoryNumber(formData.lowStockThreshold, 'Low stock threshold'),
+        variants: formData.variants.map((variant, index) => ({
+          ...variant,
+          stock: inventoryNumber(variant.stock, `Variant ${index + 1} stock`),
+          lowStockThreshold: inventoryNumber(variant.lowStockThreshold, `Variant ${index + 1} low stock threshold`),
+        })),
         images: formData.images.filter(img => img.url.trim()),
         videos: formData.videos.filter(v => v.url.trim()),
       };
 
       if (editingProduct) {
-        await updateProduct(editingProduct._id, cleanData);
+        await updateProduct(editingProduct._id, {
+          ...cleanData,
+          inventorySnapshot: {
+            stock: editingProduct.stock ?? 0,
+            variants: (editingProduct.variants || []).map(variant => ({ _id: variant._id, stock: variant.stock ?? 0 })),
+          },
+        });
         setFeedback({ type: 'success', text: 'Product updated successfully' });
       } else {
         await createProduct(cleanData);
@@ -125,7 +181,7 @@ export const ManageProducts = () => {
       setIsModalOpen(false);
       loadData();
     } catch (err) {
-      setFeedback({ type: 'error', text: err.message || 'Error saving product' });
+      setFormError(err.message || 'Error saving product');
     } finally {
       setSaving(false);
     }
@@ -137,7 +193,7 @@ export const ManageProducts = () => {
       ...prev,
       variants: [
         ...prev.variants,
-        { label: '', color: '1B Natural Black', length: '30 Inch', capSize: 'Medium', stock: 10, sku: '' }
+        { label: '', color: '1B Natural Black', length: '30 Inch', capSize: 'Medium', stock: 0, lowStockThreshold: prev.lowStockThreshold, sku: '' }
       ]
     }));
   };
@@ -149,10 +205,43 @@ export const ManageProducts = () => {
     }));
   };
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.slug?.toLowerCase().includes(search.toLowerCase())
-  );
+  const updateVariantField = (index, field, value) => {
+    setFormData(prev => ({ ...prev, variants: prev.variants.map((variant, i) => i === index ? { ...variant, [field]: value } : variant) }));
+  };
+
+  const openStockModal = (product) => {
+    const variant = product.variants?.[0];
+    setStockProduct(product);
+    setStockError('');
+    setStockForm({ variantId: variant?._id || '', stock: variant?.stock ?? product.stock ?? 0, lowStockThreshold: variant?.lowStockThreshold ?? product.lowStockThreshold ?? 5, notes: '' });
+  };
+
+  const handleStockSubmit = async (event) => {
+    event.preventDefault();
+    setStockError('');
+    setStockSaving(true);
+    try {
+      const updated = await updateProductStock(stockProduct._id, {
+        stock: inventoryNumber(stockForm.stock, 'Stock'),
+        expectedStock: stockForm.variantId ? stockProduct.variants.find(variant => variant._id === stockForm.variantId).stock : stockProduct.stock ?? 0,
+        lowStockThreshold: inventoryNumber(stockForm.lowStockThreshold, 'Low stock threshold'),
+        ...(stockForm.variantId ? { variantId: stockForm.variantId } : {}),
+        notes: stockForm.notes.trim(),
+      });
+      setProducts(prev => prev.map(product => product._id === updated._id ? { ...updated, category: typeof updated.category === 'object' ? updated.category : product.category } : product));
+      setStockProduct(null);
+      setFeedback({ type: 'success', text: 'Stock updated successfully' });
+    } catch (error) {
+      setStockError(error.message || 'Unable to update stock');
+    } finally {
+      setStockSaving(false);
+    }
+  };
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) || product.slug?.toLowerCase().includes(search.toLowerCase());
+    return matchesSearch && (stockFilter === 'all' || productInventory(product).status === stockFilter);
+  });
 
   return (
     <div className="space-y-6">
@@ -187,7 +276,8 @@ export const ManageProducts = () => {
       )}
 
       {/* Search Filter */}
-      <div className="relative max-w-md">
+      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="relative w-full sm:max-w-md">
         <input
           type="text"
           value={search}
@@ -196,6 +286,18 @@ export const ManageProducts = () => {
           className="w-full bg-neutral-900 border border-neutral-800 text-white rounded-xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:border-ace-pink"
         />
         <Search className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
+      </div>
+      <select
+        aria-label="Filter by stock status"
+        value={stockFilter}
+        onChange={event => setStockFilter(event.target.value)}
+        className="bg-neutral-900 border border-neutral-800 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-ace-pink"
+      >
+        <option value="all">All stock levels</option>
+        <option value="in_stock">In Stock</option>
+        <option value="low_stock">Low Stock</option>
+        <option value="out_of_stock">Out of Stock</option>
+      </select>
       </div>
 
       {/* Products Table */}
@@ -231,6 +333,17 @@ export const ManageProducts = () => {
                 </div>
               </div>
 
+              <div className="flex items-center justify-between gap-3 bg-neutral-950 border border-neutral-800 rounded-xl p-3">
+                <div>
+                  <span className="block text-neutral-500 text-[10px] uppercase font-bold">Stock</span>
+                  <strong className="block text-sm text-white mb-1">{productInventory(prod).total} units</strong>
+                  <StockBadge status={productInventory(prod).status} />
+                </div>
+                <button onClick={() => openStockModal(prod)} className="text-xs text-ace-pink font-bold hover:underline" aria-label={`Update stock for ${prod.name}`}>
+                  Update stock
+                </button>
+              </div>
+
               <div className="flex items-center justify-between gap-3 pt-1">
                 <div className="flex flex-wrap gap-1.5">
                   {prod.isFeatured && <span className="bg-pink-950 text-ace-pink border border-pink-800 px-2 py-0.5 rounded-full text-[10px] font-bold">Featured</span>}
@@ -260,13 +373,14 @@ export const ManageProducts = () => {
 
         <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-xs">
+            <table className="w-full min-w-[960px] text-left text-xs">
               <thead className="bg-neutral-950/60 text-neutral-400 uppercase tracking-wider border-b border-neutral-800">
                 <tr>
                   <th className="py-3.5 px-6 font-semibold">Product</th>
                   <th className="py-3.5 px-4 font-semibold">Category</th>
                   <th className="py-3.5 px-4 font-semibold">Price</th>
                   <th className="py-3.5 px-4 font-semibold">Variants</th>
+                  <th className="py-3.5 px-4 font-semibold">Stock</th>
                   <th className="py-3.5 px-4 font-semibold">Flags</th>
                   <th className="py-3.5 px-6 font-semibold text-right">Actions</th>
                 </tr>
@@ -299,6 +413,10 @@ export const ManageProducts = () => {
                         {prod.variants?.length || 0} option(s)
                       </span>
                     </td>
+                    <td className="py-4 px-4">
+                      <strong className="block text-white mb-1">{productInventory(prod).total} units</strong>
+                      <StockBadge status={productInventory(prod).status} />
+                    </td>
                     <td className="py-4 px-4 space-x-1">
                       {prod.isFeatured && (
                         <span className="bg-pink-950 text-ace-pink border border-pink-800 px-2 py-0.5 rounded-full text-[10px] font-bold">
@@ -312,6 +430,14 @@ export const ManageProducts = () => {
                       )}
                     </td>
                     <td className="py-4 px-6 text-right space-x-2">
+                      <button
+                        onClick={() => openStockModal(prod)}
+                        className="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-ace-pink transition"
+                        title="Update stock"
+                        aria-label={`Update stock for ${prod.name}`}
+                      >
+                        <Package className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => openEditModal(prod)}
                         className="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition"
@@ -333,19 +459,67 @@ export const ManageProducts = () => {
             </table>
           </div>
         </div>
+        {filteredProducts.length === 0 && <p className="py-8 text-center text-sm text-neutral-400">No products match these filters.</p>}
         </>
+      )}
+
+      {stockProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div role="dialog" aria-modal="true" aria-labelledby="stock-dialog-title" className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-neutral-900 rounded-2xl border border-neutral-800 p-6">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 id="stock-dialog-title" className="font-heading font-bold text-lg text-white">Update stock</h2>
+              <button type="button" disabled={stockSaving} onClick={() => setStockProduct(null)} aria-label="Close stock editor" className="text-neutral-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-neutral-300 mb-4">{stockProduct.name}</p>
+            <form onSubmit={handleStockSubmit} className="space-y-4">
+              {stockError && <p role="alert" className="rounded-xl bg-rose-950/60 border border-rose-800 p-3 text-xs text-rose-300">{stockError}</p>}
+              {stockProduct.isSoldOut && <p className="text-xs text-amber-300">This product is manually marked sold out. Clear that setting in the product editor to make it available.</p>}
+              {stockProduct.variants?.length > 0 && (
+                <label className="block text-xs text-neutral-400">Variant
+                  <select
+                    value={stockForm.variantId}
+                    onChange={event => {
+                      const variant = stockProduct.variants.find(item => item._id === event.target.value);
+                      setStockForm(prev => ({ ...prev, variantId: variant._id, stock: variant.stock ?? 0, lowStockThreshold: variant.lowStockThreshold ?? stockProduct.lowStockThreshold ?? 5 }));
+                      setStockError('');
+                    }}
+                    className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white"
+                  >
+                    {stockProduct.variants.map(variant => <option key={variant._id} value={variant._id}>{variant.label || [variant.color, variant.length, variant.capSize].filter(Boolean).join(' / ') || variant.sku || 'Variant'} ({variant.stock ?? 0} in stock)</option>)}
+                  </select>
+                </label>
+              )}
+              <label className="block text-xs text-neutral-400">Available stock
+                <input type="number" min="0" step="1" required value={stockForm.stock} onChange={event => setStockForm(prev => ({ ...prev, stock: event.target.value }))} className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white" />
+              </label>
+              <label className="block text-xs text-neutral-400">Low stock threshold
+                <input type="number" min="0" step="1" required value={stockForm.lowStockThreshold} onChange={event => setStockForm(prev => ({ ...prev, lowStockThreshold: event.target.value }))} className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white" />
+              </label>
+              <StockBadge status={stockStatus(stockForm.stock, stockForm.lowStockThreshold)} />
+              <label className="block text-xs text-neutral-400">Adjustment note (optional)
+                <input type="text" maxLength="500" value={stockForm.notes} onChange={event => setStockForm(prev => ({ ...prev, notes: event.target.value }))} placeholder="e.g. New delivery received" className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white" />
+              </label>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button onClick={() => setStockProduct(null)} disabled={stockSaving} variant="ghost" className="text-neutral-400 hover:text-white">Cancel</Button>
+                <Button type="submit" loading={stockSaving}>Save stock</Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Create / Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-3xl bg-neutral-900 rounded-2xl sm:rounded-3xl border border-neutral-800 shadow-2xl p-4 sm:p-8 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
+          <div role="dialog" aria-modal="true" aria-labelledby="product-dialog-title" className="relative w-full max-w-3xl bg-neutral-900 rounded-2xl sm:rounded-3xl border border-neutral-800 shadow-2xl p-4 sm:p-8 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 mb-6 border-b border-neutral-800">
-              <h3 className="font-heading font-extrabold text-lg text-white">
+              <h3 id="product-dialog-title" className="font-heading font-extrabold text-lg text-white">
                 {editingProduct ? 'Edit Hair Product' : 'Create New Hair Product'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
+                disabled={saving}
+                aria-label="Close product editor"
                 className="p-2 rounded-full bg-neutral-800 text-neutral-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
@@ -353,6 +527,7 @@ export const ManageProducts = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {formError && <p role="alert" className="rounded-xl bg-rose-950/60 border border-rose-800 p-3 text-xs text-rose-300">{formError}</p>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-neutral-400 mb-1">Product Title *</label>
@@ -465,6 +640,29 @@ export const ManageProducts = () => {
                 </div>
               </div>
 
+              <div className="p-4 bg-neutral-950 rounded-2xl border border-neutral-800 space-y-3">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Inventory</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {formData.variants.length === 0 && (
+                    <label className="block text-xs text-neutral-400">Available stock
+                      <input type="number" min="0" step="1" required value={formData.stock} onChange={event => setFormData(prev => ({ ...prev, stock: event.target.value }))} className="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-white" />
+                    </label>
+                  )}
+                  <label className="block text-xs text-neutral-400">{formData.variants.length ? 'Total stock warning threshold' : 'Low stock threshold'}
+                    <input type="number" min="0" step="1" required value={formData.lowStockThreshold} onChange={event => setFormData(prev => ({ ...prev, lowStockThreshold: event.target.value }))} className="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-white" />
+                  </label>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-neutral-300">
+                  <span>{productInventory(formData).total} units total</span>
+                  <StockBadge status={productInventory(formData).status} />
+                </div>
+                <p className="text-[11px] text-neutral-500">{formData.variants.length ? 'Each variant has its own stock and warning threshold. Total stock is the sum of all variants.' : 'Stock is tracked on this product. Add variants below to track each option separately.'}</p>
+                <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                  <input type="checkbox" checked={formData.isSoldOut} onChange={event => setFormData(prev => ({ ...prev, isSoldOut: event.target.checked }))} className="accent-ace-pink w-4 h-4 rounded" />
+                  Mark product sold out (even if stock remains)
+                </label>
+              </div>
+
               {/* Variants Section */}
               <div className="p-4 bg-neutral-950 rounded-2xl border border-neutral-800 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -479,57 +677,68 @@ export const ManageProducts = () => {
                 </div>
 
                 <div className="space-y-2">
+                  {formData.variants.length === 0 && <p className="text-xs text-neutral-500">No variants. This product uses the available stock above.</p>}
                   {formData.variants.map((v, idx) => (
-                    <div key={idx} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-center bg-neutral-900 p-2.5 rounded-xl border border-neutral-800 text-xs">
+                    <div key={v._id || idx} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-end bg-neutral-900 p-3 rounded-xl border border-neutral-800 text-xs">
+                      <label className="col-span-2 sm:col-span-12 text-neutral-400">Variant label
+                        <input type="text" value={v.label || ''} onChange={event => updateVariantField(idx, 'label', event.target.value)} placeholder="e.g. Island Twist" className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 text-white text-xs" />
+                      </label>
+                      <label className="col-span-1 sm:col-span-4 text-neutral-400">Color
                       <input
                         type="text"
                         placeholder="Color (1B, #27, etc)"
-                        value={v.color}
-                        onChange={(e) => {
-                          const updated = [...formData.variants];
-                          updated[idx].color = e.target.value;
-                          setFormData({ ...formData, variants: updated });
-                        }}
-                        className="col-span-1 sm:col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
+                        value={v.color || ''}
+                        onChange={event => updateVariantField(idx, 'color', event.target.value)}
+                        className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 text-white text-xs"
                       />
+                      </label>
+                      <label className="col-span-1 sm:col-span-4 text-neutral-400">Length
                       <input
                         type="text"
                         placeholder="Length (28 Inch)"
-                        value={v.length}
-                        onChange={(e) => {
-                          const updated = [...formData.variants];
-                          updated[idx].length = e.target.value;
-                          setFormData({ ...formData, variants: updated });
-                        }}
-                        className="col-span-1 sm:col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
+                        value={v.length || ''}
+                        onChange={event => updateVariantField(idx, 'length', event.target.value)}
+                        className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 text-white text-xs"
                       />
-                      <input
-                        type="number"
-                        placeholder="Stock"
-                        value={v.stock}
-                        onChange={(e) => {
-                          const updated = [...formData.variants];
-                          updated[idx].stock = Number(e.target.value);
-                          setFormData({ ...formData, variants: updated });
-                        }}
-                        className="col-span-1 sm:col-span-2 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
-                      />
+                      </label>
+                      <label className="col-span-1 sm:col-span-4 text-neutral-400">Cap size
                       <input
                         type="text"
                         placeholder="Cap Size"
-                        value={v.capSize}
-                        onChange={(e) => {
-                          const updated = [...formData.variants];
-                          updated[idx].capSize = e.target.value;
-                          setFormData({ ...formData, variants: updated });
-                        }}
-                        className="col-span-1 sm:col-span-3 bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 sm:py-1 text-white text-xs"
+                        value={v.capSize || ''}
+                        onChange={event => updateVariantField(idx, 'capSize', event.target.value)}
+                        className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 text-white text-xs"
                       />
+                      </label>
+                      <label className="col-span-1 sm:col-span-3 text-neutral-400">Stock
+                      <input
+                        type="number"
+                        placeholder="Stock"
+                        required
+                        min="0"
+                        step="1"
+                        value={v.stock}
+                        onChange={event => updateVariantField(idx, 'stock', event.target.value)}
+                        className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 text-white text-xs"
+                      />
+                      </label>
+                      <label className="col-span-1 sm:col-span-4 text-neutral-400">Low stock threshold
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="1"
+                        value={v.lowStockThreshold}
+                        onChange={event => updateVariantField(idx, 'lowStockThreshold', event.target.value)}
+                        className="mt-1 w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-2 text-white text-xs"
+                      />
+                      </label>
+                      <div className="col-span-1 sm:col-span-4 py-2"><StockBadge status={stockStatus(v.stock, v.lowStockThreshold)} /></div>
                       <button
                         type="button"
                         onClick={() => removeVariantRow(idx)}
-                        disabled={formData.variants.length <= 1}
-                        className="col-span-2 sm:col-span-1 text-neutral-500 hover:text-rose-400 text-center"
+                        aria-label={`Remove variant ${v.label || idx + 1}`}
+                        className="col-span-2 sm:col-span-1 py-2 text-neutral-500 hover:text-rose-400 text-center"
                       >
                         <X className="w-4 h-4 mx-auto" />
                       </button>
@@ -562,11 +771,13 @@ export const ManageProducts = () => {
               </div>
 
               {/* Submit Buttons */}
+              {formError && <p role="alert" className="flex items-center gap-2 text-xs text-rose-300"><AlertCircle className="w-4 h-4 shrink-0" />{formError}</p>}
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-neutral-800">
                 <Button
                   variant="ghost"
                   size="md"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={saving}
                   className="text-neutral-400 hover:text-white"
                 >
                   Cancel

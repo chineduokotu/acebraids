@@ -1,20 +1,20 @@
-import axios from 'axios';
+import axios from "axios";
 
-export const AUTH_EXPIRED_EVENT = 'ace:auth-expired';
+export const AUTH_EXPIRED_EVENT = "ace:auth-expired";
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-const apiOrigin = configuredApiUrl || (
-  import.meta.env.DEV
-    ? 'http://localhost:5000'
-    : '' // Same-origin API proxy keeps the admin cookie available to SSE.
-);
-const apiBaseUrl = `${apiOrigin.replace(/\/$/, '')}/api`;
+const apiOrigin =
+  configuredApiUrl ||
+  (import.meta.env.DEV
+    ? "http://localhost:5000"
+    : "https://acebraids-api.onrender.com");
+const apiBaseUrl = `${apiOrigin.replace(/\/$/, "")}/api`;
 
 const axiosClient = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -27,13 +27,19 @@ axiosClient.interceptors.response.use(
     }
     // Never propagate Axios request/config objects: they can contain passwords.
     const customError = {
-      message: error.response?.data?.message || error.message || 'Something went wrong',
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Something went wrong",
       status: error.response?.status,
       code: error.response?.data?.code,
-      retryAfter: Number(error.response?.headers?.['retry-after']) || Number(error.response?.data?.retryAfter) || 0,
+      retryAfter:
+        Number(error.response?.headers?.["retry-after"]) ||
+        Number(error.response?.data?.retryAfter) ||
+        0,
     };
     return Promise.reject(customError);
-  }
+  },
 );
 
 export default axiosClient;
