@@ -2,16 +2,25 @@ import axiosClient from './axiosClient';
 
 export const loginUser = async (credentials) => {
   const response = await axiosClient.post('/auth/login', credentials, { skipAuthExpiration: true });
+  if (response.data?.token) {
+    try { sessionStorage.setItem('ace_auth_token', response.data.token); } catch {}
+  }
   return response.data;
 };
 
 export const adminLoginUser = async (credentials) => {
   const response = await axiosClient.post('/auth/admin/login', credentials, { skipAuthExpiration: true });
+  if (response.data?.token) {
+    try { sessionStorage.setItem('ace_auth_token', response.data.token); } catch {}
+  }
   return response.data;
 };
 
 export const registerUser = async (userData) => {
   const response = await axiosClient.post('/auth/register', userData, { skipAuthExpiration: true });
+  if (response.data?.token) {
+    try { sessionStorage.setItem('ace_auth_token', response.data.token); } catch {}
+  }
   return response.data;
 };
 
@@ -26,6 +35,7 @@ export const changeAdminPassword = async (passwords) => {
 };
 
 export const logoutUser = async () => {
+  try { sessionStorage.removeItem('ace_auth_token'); } catch {}
   const response = await axiosClient.post('/auth/logout');
   return response.data;
 };

@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let active = true;
     const clearSession = () => {
+      try { sessionStorage.removeItem('ace_auth_token'); } catch {}
       setUser(persistAuthProfile(null));
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, clearSession);

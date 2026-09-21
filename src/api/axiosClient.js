@@ -25,6 +25,22 @@ const axiosClient = axios.create({
   },
 });
 
+// Request interceptor to send Bearer token across origins
+axiosClient.interceptors.request.use(
+  (config) => {
+    try {
+      const token = typeof window !== "undefined" ? sessionStorage.getItem("ace_auth_token") : null;
+      if (token && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Response interceptor for error handling
 axiosClient.interceptors.response.use(
   (response) => response,
