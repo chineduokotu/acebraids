@@ -4,7 +4,10 @@ export const AUTH_EXPIRED_EVENT = "ace:auth-expired";
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 const apiOrigin =
-  configuredApiUrl || (import.meta.env.DEV ? "http://localhost:5000" : ""); // Same-origin: Vercel rewrites /api/* → Render, keeping cookies valid.
+  configuredApiUrl ||
+  (import.meta.env.DEV
+    ? "http://localhost:5000"
+    : "https://acebraids-api.onrender.com"); // Production Render backend
 const apiBaseUrl = `${apiOrigin.replace(/\/$/, "")}/api`;
 
 const axiosClient = axios.create({
