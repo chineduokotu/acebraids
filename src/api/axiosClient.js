@@ -2,12 +2,19 @@ import axios from "axios";
 
 export const AUTH_EXPIRED_EVENT = "ace:auth-expired";
 
-const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-const apiOrigin =
-  configuredApiUrl ||
-  (import.meta.env.DEV
-    ? "http://localhost:5000"
-    : "https://acebraids-api.onrender.com"); // Production Render backend
+const isBrowser = typeof window !== "undefined";
+const isLocalhost =
+  isBrowser &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.startsWith("192.168."));
+
+// When running on a public domain (e.g. acebraids.co.uk, vercel.app, workers.dev),
+// ALWAYS use the production Render API. Only use localhost when actually running on localhost.
+const apiOrigin = isLocalhost
+  ? (import.meta.env.VITE_API_URL?.trim() || "http://localhost:5000")
+  : "https://acebraids-api.onrender.com";
+
 const apiBaseUrl = `${apiOrigin.replace(/\/$/, "")}/api`;
 
 const axiosClient = axios.create({
