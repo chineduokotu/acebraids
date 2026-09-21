@@ -12,9 +12,6 @@ export const Cart = () => {
     removeFromCart,
     updateQuantity,
     subtotal,
-    freeShippingThreshold,
-    amountNeededForFreeShipping,
-    freeShippingProgress,
   } = useCart();
 
   const { format } = useCurrency();
@@ -24,9 +21,9 @@ export const Cart = () => {
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoError, setPromoError] = useState('');
 
-  const shippingFee = subtotal >= freeShippingThreshold ? 0 : 5.99;
+  const shippingFee = 0; // Free shipping on all orders
   const discountAmount = promoApplied ? subtotal * 0.1 : 0;
-  const finalTotal = Math.max(0, subtotal - discountAmount + shippingFee);
+  const finalTotal = Math.max(0, subtotal - discountAmount);
 
   const handleApplyPromo = (e) => {
     e.preventDefault();
@@ -80,24 +77,9 @@ export const Cart = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Left Column: Cart Items List */}
           <div className="lg:col-span-8 space-y-6">
-            {/* Free Shipping Meter */}
+            {/* Free Shipping Banner */}
             <div className="bg-ace-alt p-4 rounded-2xl border border-ace-border/60">
-              <div className="flex justify-between text-xs font-semibold mb-2">
-                <span>
-                  {amountNeededForFreeShipping > 0 ? (
-                    <>Add <strong className="text-ace-pink">{format(amountNeededForFreeShipping)}</strong> more to get <strong>FREE UK Delivery</strong></>
-                  ) : (
-                    <strong className="text-ace-pink">🎉 You have qualified for FREE UK Delivery!</strong>
-                  )}
-                </span>
-                <span className="text-neutral-500">{Math.round(freeShippingProgress)}%</span>
-              </div>
-              <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-ace-pink transition-all duration-500 rounded-full"
-                  style={{ width: `${freeShippingProgress}%` }}
-                />
-              </div>
+              <strong className="text-ace-pink text-sm">🎉 FREE Shipping on all orders!</strong>
             </div>
 
             {/* Items */}

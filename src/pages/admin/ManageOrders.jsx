@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, Search, CheckCircle2, Clock, AlertCircle, X, XCircle } from 'lucide-react';
-import { fetchAdminOrders, fetchOrderById, updateOrderStatus, approveOrderPayment, rejectOrderPayment } from '../../api/orders';
+import { Eye, Search, CheckCircle2, Clock, AlertCircle, X, XCircle, Trash2 } from 'lucide-react';
+import { fetchAdminOrders, fetchOrderById, updateOrderStatus, approveOrderPayment, rejectOrderPayment, deleteOrder } from '../../api/orders';
 import { useAdminNotifications } from '../../context/AdminNotificationsContext';
 import { formatPaymentAmount, paymentStatusLabel, canVerifyBankTransfer } from '../../utils/paymentDisplay';
 import { Button } from '../../components/common/Button';
@@ -15,6 +15,8 @@ export const ManageOrders = () => {
   const [search, setSearch] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [paymentUpdating, setPaymentUpdating] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
   const { paymentRevision } = useAdminNotifications();
@@ -147,6 +149,25 @@ export const ManageOrders = () => {
         return 'bg-rose-950 text-rose-400 border border-rose-800';
       default:
         return 'bg-neutral-800 text-neutral-300 border border-neutral-700';
+    }
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    setDeleting(true);
+    setFeedback(null);
+    try {
+      const res = await deleteOrder(orderId);
+      setOrders(prev => prev.filter(o => o._id !== orderId));
+      if (selectedOrder?._id === orderId) {
+        setSelectedOrder(null);
+      }
+      setOrderToDelete(null);
+      const restoredText = res.restoredCount > 0 ? ` (${res.restoredCount} inventory item(s) restored to stock)` : '';
+      setFeedback({ type: 'success', text: `Order permanently deleted${restoredText}.` });
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.message || err.message || 'Failed to delete order.' });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -326,13 +347,22 @@ export const ManageOrders = () => {
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setSelectedOrder(ord)}
-                  className="w-full px-3 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Inspect Order</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedOrder(ord)}
+                    className="flex-1 px-3 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Inspect Order</span>
+                  </button>
+                  <button
+                    onClick={() => setOrderToDelete(ord)}
+                    title="Delete Order"
+                    className="p-2.5 bg-neutral-800 hover:bg-rose-950/80 text-neutral-400 hover:text-rose-400 rounded-xl text-xs transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               )}
             </div>
           ))}
@@ -383,13 +413,22 @@ export const ManageOrders = () => {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <button
-                        onClick={() => setSelectedOrder(ord)}
-                        className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Inspect</span>
-                      </button>
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedOrder(ord)}
+                          className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Inspect</span>
+                        </button>
+                        <button
+                          onClick={() => setOrderToDelete(ord)}
+                          title="Delete Order"
+                          className="p-1.5 bg-neutral-800 hover:bg-rose-950/80 text-neutral-400 hover:text-rose-400 rounded-xl text-xs transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -518,10 +557,72 @@ export const ManageOrders = () => {
               </div>
             </div>
 
-            {/* Total */}
-            <div className="flex justify-between items-baseline pt-2 text-sm border-t border-neutral-800">
-              <span className="font-bold text-neutral-400">Order Total</span>
-              <span className="font-black text-xl text-ace-pink font-heading">{formatPaymentAmount(selectedOrder.total, selectedOrder.currency)}</span>
+            {/* Total & Action Footer */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-4 border-t border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setOrderToDelete(selectedOrder)}
+                className="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900 border border-rose-800/80 text-rose-300 rounded-xl text-xs font-bold inline-flex items-center justify-center gap-2 transition hover:border-rose-600"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Order</span>
+              </button>
+
+              <div className="flex items-baseline justify-between sm:justify-end gap-3 text-sm">
+                <span className="font-bold text-neutral-400">Order Total:</span>
+                <span className="font-black text-xl text-ace-pink font-heading">{formatPaymentAmount(selectedOrder.total, selectedOrder.currency)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Deleting an Order */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="relative w-full max-w-md bg-neutral-900 rounded-3xl border border-neutral-800 p-6 space-y-4 shadow-2xl animate-fade-in">
+            <div className="w-12 h-12 rounded-2xl bg-rose-950/60 border border-rose-800 flex items-center justify-center text-rose-400">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="font-heading font-extrabold text-lg text-white">Permanently Delete Order?</h3>
+              <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
+                Are you sure you want to delete order <span className="font-mono font-bold text-ace-pink">{orderToDelete.trackingCode || orderToDelete.paymentRef}</span>?
+              </p>
+              <div className="text-xs text-neutral-400 mt-3 bg-neutral-950 p-3.5 rounded-xl border border-neutral-800 space-y-1">
+                <p className="font-semibold text-neutral-300">Customer: {orderToDelete.guestInfo?.firstName} {orderToDelete.guestInfo?.lastName}</p>
+                <p className="text-neutral-500">Amount: {formatPaymentAmount(orderToDelete.total, orderToDelete.currency)}</p>
+                <p className="text-amber-400/90 text-[11px] pt-1">
+                  ⚠️ Any stock deducted for this order will automatically be returned to physical inventory. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setOrderToDelete(null)}
+                className="px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => handleDeleteOrder(orderToDelete._id)}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold inline-flex items-center gap-2 transition disabled:opacity-50 shadow-lg shadow-rose-950"
+              >
+                {deleting ? (
+                  <span>Deleting...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Order</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

@@ -15,9 +15,6 @@ export const CartDrawer = () => {
     updateQuantity,
     totalItemsCount,
     subtotal,
-    freeShippingThreshold,
-    amountNeededForFreeShipping,
-    freeShippingProgress,
   } = useCart();
 
   const { format } = useCurrency();
@@ -75,25 +72,12 @@ export const CartDrawer = () => {
             </button>
           </div>
 
-          {/* Free Shipping Progress Bar */}
-          <div className="bg-ace-alt px-6 py-3.5 border-b border-ace-border/60">
-            <div className="flex items-center justify-between text-xs mb-1.5 font-medium">
-              <span className="flex items-center gap-1.5 text-ace-black">
-                <Truck className="w-4 h-4 text-ace-pink" />
-                {amountNeededForFreeShipping > 0 ? (
-                  <>Add <strong className="text-ace-pink">{format(amountNeededForFreeShipping)}</strong> for <strong>FREE UK Delivery</strong></>
-                ) : (
-                  <strong className="text-ace-pink">🎉 You unlocked FREE UK Shipping!</strong>
-                )}
-              </span>
-              <span className="text-neutral-500 font-bold">{Math.round(freeShippingProgress)}%</span>
-            </div>
-            <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-ace-pink transition-all duration-500 rounded-full"
-                style={{ width: `${freeShippingProgress}%` }}
-              />
-            </div>
+          {/* Free Shipping Banner */}
+          <div className="bg-ace-alt px-6 py-3 border-b border-ace-border/60">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-ace-black">
+              <Truck className="w-4 h-4 text-ace-pink" />
+              <strong className="text-ace-pink">🎉 FREE Shipping on all orders!</strong>
+            </span>
           </div>
 
           {/* Cart Items List */}

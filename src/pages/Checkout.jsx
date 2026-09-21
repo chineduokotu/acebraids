@@ -56,10 +56,8 @@ export const Checkout = () => {
     loadBankDetails();
   }, []);
 
-  const shippingFee = formData.country === 'Germany'
-    ? 8.99
-    : (subtotal >= 80 ? 0 : 5.99);
-  const finalTotal = Number((subtotal + shippingFee).toFixed(2));
+  const shippingFee = 0; // Free shipping on all orders
+  const finalTotal = Number(subtotal.toFixed(2));
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

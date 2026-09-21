@@ -39,3 +39,8 @@ export const rejectOrderPayment = async (id, reason) => {
   const response = await axiosClient.put(`/orders/${id}/payment/reject`, { reason });
   return response.data;
 };
+
+export const deleteOrder = async (id) => {
+  const response = await axiosClient.delete(`/orders/${id}`);
+  return response.data;
+};

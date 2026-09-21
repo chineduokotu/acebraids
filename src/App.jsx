@@ -5,18 +5,21 @@ import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
 import { CurrencyProvider } from './context/CurrencyContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export const App = () => {
   return (
-    <AuthProvider>
-      <CurrencyProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <RouterProvider router={router} />
-          </CartProvider>
-        </WishlistProvider>
-      </CurrencyProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <CurrencyProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <RouterProvider router={router} />
+            </CartProvider>
+          </WishlistProvider>
+        </CurrencyProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
