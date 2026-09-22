@@ -44,3 +44,12 @@ export const deleteOrder = async (id) => {
   const response = await axiosClient.delete(`/orders/${id}`);
   return response.data;
 };
+
+export const notifyAdminOrderPlaced = async (id) => {
+  try {
+    const response = await axiosClient.post(`/orders/${id}/notify-admin`);
+    return response.data;
+  } catch {
+    return null;
+  }
+};

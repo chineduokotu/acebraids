@@ -77,6 +77,7 @@ export const router = createBrowserRouter([
       { path: 'products',          element: s(<ManageProducts />) },
       { path: 'categories',        element: s(<ManageCategories />) },
       { path: 'orders',            element: s(<ManageOrders />) },
+      { path: 'orders/:orderId',    element: s(<ManageOrders />) },
       { path: 'notifications',     element: s(<AdminNotifications />) },
       { path: 'customer-looks',    element: s(<ManageCustomerLooks />) },
       { path: 'settings',          element: s(<AdminSettings />) },

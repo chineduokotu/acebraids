@@ -41,6 +41,9 @@ export const Checkout = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [copied, setCopied] = useState('');
+  // Generated once per checkout form load. Same key is reused on network retries
+  // so the server can detect and return the already-created order.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
     const loadBankDetails = async () => {
@@ -122,14 +125,14 @@ export const Checkout = () => {
     setProcessing(true);
     try {
       if (paymentMethod === 'stripe') {
-        const response = await createStripeCheckoutSession({ orderDraft: buildOrderDraft() });
+        const response = await createStripeCheckoutSession({ orderDraft: buildOrderDraft(), idempotencyKey });
         setCreatedOrder(response.order);
         if (response.checkoutUrl) {
           window.location.href = response.checkoutUrl;
           return;
         }
       } else {
-        const response = await createBankTransferOrder({ orderDraft: buildOrderDraft() });
+        const response = await createBankTransferOrder({ orderDraft: buildOrderDraft(), idempotencyKey });
         setCreatedOrder(response.order);
         setBankDetails(response.bankDetails || bankDetails);
         setVerificationWindowMinutes(response.verificationWindowMinutes || verificationWindowMinutes);

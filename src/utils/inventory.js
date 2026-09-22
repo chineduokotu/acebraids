@@ -57,13 +57,15 @@ export const getRemainingStock = (cart, product, selection) => {
 };
 
 const stockMessage = (name, stock) => stock === 0
-  ? `"${name}" is currently out of stock.`
-  : `Only ${stock} units of "${name}" are currently available, including those already in your bag.`;
+  ? `Sorry, "${name}" is currently out of stock. Please choose another available option or check back soon.`
+  : `Only ${stock} ${stock === 1 ? 'item' : 'items'} of "${name}" are currently available. Please update the quantity to continue.`;
+
 
 export const addCartItem = (cart, product, selection, qty = 1) => {
   if (!Number.isSafeInteger(qty) || qty <= 0) return { cart, added: false, message: 'Please choose a whole quantity of at least 1.' };
   const variant = resolveVariant(product, selection);
-  if (product.variants?.length && !variant) return { cart, added: false, message: 'Please select an available product option.' };
+  if (product.variants?.length && !variant) return { cart, added: false, message: 'Sorry, this option is no longer available. Please choose another option to continue.' };
+
   const stock = getAvailableStock(product, variant);
   const matching = cart.filter((item) => matchesSelection(item, product, variant));
   const currentQty = matching.reduce((total, item) => total + units(item.qty), 0);

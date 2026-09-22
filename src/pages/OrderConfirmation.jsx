@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CheckCircle2, Copy, Check, Truck, ArrowRight, Printer, MapPin, Clock, XCircle } from 'lucide-react';
-import { fetchOrderById } from '../api/orders';
+import { fetchOrderById, notifyAdminOrderPlaced } from '../api/orders';
 import { formatPaymentAmount, paymentStatusLabel } from '../utils/paymentDisplay';
 import { Loader } from '../components/common/Loader';
 import { Button } from '../components/common/Button';
@@ -36,6 +36,7 @@ export const OrderConfirmation = () => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
+  const adminNotifiedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -48,6 +49,12 @@ export const OrderConfirmation = () => {
         if (!active) return;
         setOrder(data);
         setError('');
+
+        if (!adminNotifiedRef.current) {
+          adminNotifiedRef.current = true;
+          notifyAdminOrderPlaced(id);
+        }
+
         shouldPoll = !['paid', 'failed', 'rejected', 'mock_paid'].includes(data.paymentStatus);
       } catch (err) {
         if (active) setError(err.message || 'Unable to check payment status. Retrying automatically.');

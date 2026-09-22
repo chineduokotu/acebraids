@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { Eye, Search, CheckCircle2, Clock, AlertCircle, X, XCircle, Trash2 } from 'lucide-react';
 import { fetchAdminOrders, fetchOrderById, updateOrderStatus, approveOrderPayment, rejectOrderPayment, deleteOrder } from '../../api/orders';
 import { useAdminNotifications } from '../../context/AdminNotificationsContext';
@@ -20,8 +20,9 @@ export const ManageOrders = () => {
   const [feedback, setFeedback] = useState(null);
 
   const { paymentRevision } = useAdminNotifications();
+  const { orderId } = useParams();
   const [searchParams] = useSearchParams();
-  const requestedOrderId = searchParams.get('order');
+  const requestedOrderId = orderId || searchParams.get('order');
   const requestVersion = useRef(0);
 
   const loadOrders = async ({ quiet = false } = {}) => {

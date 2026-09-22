@@ -5,16 +5,18 @@ export const fetchBankTransferDetails = async () => {
   return response.data;
 };
 
-export const createBankTransferOrder = async ({ orderDraft }) => {
+export const createBankTransferOrder = async ({ orderDraft, idempotencyKey }) => {
   const response = await axiosClient.post('/payments/bank-transfer/order', {
     orderDraft,
+    ...(idempotencyKey ? { idempotencyKey } : {}),
   });
   return response.data;
 };
 
-export const createStripeCheckoutSession = async ({ orderDraft }) => {
+export const createStripeCheckoutSession = async ({ orderDraft, idempotencyKey }) => {
   const response = await axiosClient.post('/payments/stripe/checkout-session', {
     orderDraft,
+    ...(idempotencyKey ? { idempotencyKey } : {}),
   });
   return response.data;
 };
